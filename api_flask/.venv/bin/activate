@@ -39,10 +39,10 @@ deactivate nondestructive
 if [ "${OSTYPE:-}" = "cygwin" ] || [ "${OSTYPE:-}" = "msys" ] ; then
     # transform D:\path\to\venv to /d/path/to/venv on MSYS
     # and to /cygdrive/d/path/to/venv on Cygwin
-    export VIRTUAL_ENV=$(cygpath /home/alex/Documentos/IoT/control_car_iot/api_flask/.venv)
+    export VIRTUAL_ENV=$(cygpath /home/alex/Documentos/IoT/control_car_IoT/api_flask/.venv)
 else
     # use the path as-is
-    export VIRTUAL_ENV=/home/alex/Documentos/IoT/control_car_iot/api_flask/.venv
+    export VIRTUAL_ENV=/home/alex/Documentos/IoT/control_car_IoT/api_flask/.venv
 fi
 
 _OLD_VIRTUAL_PATH="$PATH"
