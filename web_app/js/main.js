@@ -1,5 +1,5 @@
 // Configuración global
-const apiBase = "http://127.0.0.1:5000/api";
+const apiBase = "http://98.91.45.27:5000/api";
 let modoDemo = false;
 let connectionStatus;
 
