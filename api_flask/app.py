@@ -14,115 +14,165 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # ------------------- ENDPOINTS -------------------
 
-# Registrar evento
-@app.route('/api/evento', methods=['POST'])
-def registrar_evento():
-    data = request.get_json(force=True)
+# Registrar evento o consultar último evento
+@app.route('/api/evento', methods=['POST', 'GET'])
+def evento():
     conn = get_connection()
     if conn is None:
         return jsonify({"status": "error", "message": "Error de conexión a la BD"}), 500
 
-    try:
-        cursor = conn.cursor()
-        cursor.callproc("sp_registrar_evento", [
-            data.get("id_dispositivo"),
-            data.get("tipo"),
-            data.get("detalle")
-        ])
-        conn.commit()
+    cursor = conn.cursor(dictionary=True)
 
-        # Capturar ID generado por el SP
-        id_evento = None
-        for result in cursor.stored_results():
-            id_evento = result.fetchone()[0]
+    # --- Registrar evento (POST) ---
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+        try:
+            cursor.callproc("sp_registrar_evento", [
+                data.get("id_dispositivo"),
+                data.get("tipo_evento"),
+                data.get("detalle")
+            ])
+            conn.commit()
 
-        evento_info = {
-            "id_evento": id_evento,
-            "id_dispositivo": data.get("id_dispositivo"),
-            "tipo": data.get("tipo"),
-            "detalle": data.get("detalle"),
-            "timestamp": datetime.now().isoformat()
-        }
+            id_evento = None
+            for result in cursor.stored_results():
+                id_evento = result.fetchone()[0]
 
-        socketio.emit('nuevo_evento', evento_info)
-        return jsonify({"status": "ok", "mensaje": "Evento registrado", "evento": evento_info})
-    except Error as e:
-        return jsonify({"status": "error", "mensaje": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
+            evento_info = {
+                "id_evento": id_evento,
+                "id_dispositivo": data.get("id_dispositivo"),
+                "tipo_evento": data.get("tipo_evento"),
+                "detalle": data.get("detalle"),
+                "timestamp": datetime.now().isoformat()
+            }
+
+            socketio.emit('nuevo_evento', evento_info)
+            return jsonify({"status": "ok", "mensaje": "Evento registrado", "evento": evento_info})
+        except Error as e:
+            return jsonify({"status": "error", "mensaje": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    # --- Consultar último evento (GET) ---
+    elif request.method == 'GET':
+        try:
+            cursor.execute("SELECT * FROM eventos ORDER BY id_evento DESC LIMIT 1")
+            evento = cursor.fetchone()
+            if evento:
+                return jsonify({"status": "ok", "evento": evento})
+            else:
+                return jsonify({"status": "vacio", "mensaje": "No hay eventos registrados"})
+        except Error as e:
+            return jsonify({"status": "error", "mensaje": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
 
 
-# Registrar obstáculo
-@app.route('/api/obstaculo', methods=['POST'])
-def registrar_obstaculo():
-    data = request.get_json(force=True)
+# Registrar obstáculo o consultar último obstáculo
+@app.route('/api/obstaculo', methods=['POST', 'GET'])
+def obstaculo():
     conn = get_connection()
     if conn is None:
         return jsonify({"status": "error", "message": "Error de conexión a la BD"}), 500
 
-    try:
-        cursor = conn.cursor()
-        cursor.callproc("sp_registrar_obstaculo", [
-            data.get("id_dispositivo"),
-            data.get("descripcion")
-        ])
-        conn.commit()
+    cursor = conn.cursor(dictionary=True)
 
-        id_obstaculo = None
-        for result in cursor.stored_results():
-            id_obstaculo = result.fetchone()[0]
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+        try:
+            cursor.callproc("sp_registrar_obstaculo", [
+                data.get("id_dispositivo"),
+                data.get("descripcion")
+            ])
+            conn.commit()
 
-        obstaculo_info = {
-            "id_obstaculo": id_obstaculo,
-            "id_dispositivo": data.get("id_dispositivo"),
-            "descripcion": data.get("descripcion"),
-            "timestamp": datetime.now().isoformat()
-        }
+            id_obstaculo = None
+            for result in cursor.stored_results():
+                id_obstaculo = result.fetchone()[0]
 
-        socketio.emit('nuevo_obstaculo', obstaculo_info)
-        return jsonify({"status": "ok", "mensaje": "Obstáculo registrado", "obstaculo": obstaculo_info})
-    except Error as e:
-        return jsonify({"status": "error", "mensaje": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
+            obstaculo_info = {
+                "id_obstaculo": id_obstaculo,
+                "id_dispositivo": data.get("id_dispositivo"),
+                "descripcion": data.get("descripcion"),
+                "timestamp": datetime.now().isoformat()
+            }
+
+            socketio.emit('nuevo_obstaculo', obstaculo_info)
+            return jsonify({"status": "ok", "mensaje": "Obstáculo registrado", "obstaculo": obstaculo_info})
+        except Error as e:
+            return jsonify({"status": "error", "mensaje": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    elif request.method == 'GET':
+        try:
+            cursor.execute("SELECT * FROM obstaculos ORDER BY id_obstaculo DESC LIMIT 1")
+            obstaculo = cursor.fetchone()
+            if obstaculo:
+                return jsonify({"status": "ok", "obstaculo": obstaculo})
+            else:
+                return jsonify({"status": "vacio", "mensaje": "No hay obstáculos registrados"})
+        except Error as e:
+            return jsonify({"status": "error", "mensaje": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
 
 
-# Registrar secuencia
-@app.route('/api/secuencia', methods=['POST'])
-def registrar_secuencia():
-    data = request.get_json(force=True)
+# Registrar secuencia o consultar última secuencia
+@app.route('/api/secuencia', methods=['POST', 'GET'])
+def secuencia():
     conn = get_connection()
     if conn is None:
         return jsonify({"status": "error", "message": "Error de conexión a la BD"}), 500
 
-    try:
-        cursor = conn.cursor()
-        cursor.callproc("sp_registrar_secuencia", [
-            data.get("id_dispositivo"),
-            data.get("accion")
-        ])
-        conn.commit()
+    cursor = conn.cursor(dictionary=True)
 
-        id_secuencia = None
-        for result in cursor.stored_results():
-            id_secuencia = result.fetchone()[0]
+    if request.method == 'POST':
+        data = request.get_json(force=True)
+        try:
+            cursor.callproc("sp_registrar_secuencia", [
+                data.get("id_dispositivo"),
+                data.get("accion")
+            ])
+            conn.commit()
 
-        secuencia_info = {
-            "id_secuencia": id_secuencia,
-            "id_dispositivo": data.get("id_dispositivo"),
-            "accion": data.get("accion"),
-            "timestamp": datetime.now().isoformat()
-        }
+            id_secuencia = None
+            for result in cursor.stored_results():
+                id_secuencia = result.fetchone()[0]
 
-        socketio.emit('nueva_secuencia', secuencia_info)
-        return jsonify({"status": "ok", "mensaje": "Secuencia registrada", "secuencia": secuencia_info})
-    except Error as e:
-        return jsonify({"status": "error", "mensaje": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
+            secuencia_info = {
+                "id_secuencia": id_secuencia,
+                "id_dispositivo": data.get("id_dispositivo"),
+                "accion": data.get("accion"),
+                "timestamp": datetime.now().isoformat()
+            }
+
+            socketio.emit('nueva_secuencia', secuencia_info)
+            return jsonify({"status": "ok", "mensaje": "Secuencia registrada", "secuencia": secuencia_info})
+        except Error as e:
+            return jsonify({"status": "error", "mensaje": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    elif request.method == 'GET':
+        try:
+            cursor.execute("SELECT * FROM secuencias ORDER BY id_secuencia DESC LIMIT 1")
+            secuencia = cursor.fetchone()
+            if secuencia:
+                return jsonify({"status": "ok", "secuencia": secuencia})
+            else:
+                return jsonify({"status": "vacio", "mensaje": "No hay secuencias registradas"})
+        except Error as e:
+            return jsonify({"status": "error", "mensaje": str(e)}), 500
+        finally:
+            cursor.close()
+            conn.close()
+
 
 
 # ------------------- SOCKETIO -------------------
@@ -161,3 +211,4 @@ def manejar_secuencia_socket(data):
 if __name__ == '__main__':
     print("🚀 Servidor Flask-SocketIO corriendo en http://0.0.0.0:5000")
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
