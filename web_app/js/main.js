@@ -167,7 +167,7 @@ function conectarWebSocket() {
 }
 
 // =============================================================
-// ⚙️ UTILIDADES
+// ⚙️ UTILIDADES.
 // =============================================================
 function mostrarModoDemo() {
   const alert = document.getElementById("demo-alert");
