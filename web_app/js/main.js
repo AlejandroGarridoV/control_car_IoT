@@ -1,5 +1,5 @@
 // --- CONFIGURACIÓN ---
-const SERVER_URL = "http://98.91.45.27:5000"; // Dirección base del servidor Flask
+const SERVER_URL = "http://98.91.45.27:5000"; // Solo para referencia (ya no se usa fetch)
 const WS_URL = "ws://98.91.45.27:5000/ws";    // Endpoint WebSocket puro
 let ws = null;
 
@@ -19,69 +19,45 @@ const movimientoActivo = document.getElementById("movimiento-activo");
 const listaEventos = document.getElementById("listaEventos");
 
 // =============================================================
-// 📡 API REQUESTS (POST / GET)
-// =============================================================
-
-async function enviarEvento(tipo_evento) {
-  const data = {
-    id_dispositivo: 1,
-    tipo_evento: tipo_evento,
-    detalle: `Movimiento: ${tipo_evento}`
-  };
-
-  try {
-    const res = await fetch(`${SERVER_URL}/api/evento`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    const json = await res.json();
-    console.log("📤 Evento enviado:", json);
-
-    if (json.status === "ok") {
-      actualizarEstado(json.evento);
-    } else {
-      console.warn("⚠️ No se pudo registrar el evento:", json.mensaje);
-    }
-
-  } catch (error) {
-    console.error("❌ Error al enviar evento:", error);
-    mostrarModoDemo();
-  }
-}
-
-async function obtenerUltimoEvento() {
-  try {
-    const res = await fetch(`${SERVER_URL}/api/evento`);
-    const json = await res.json();
-
-    if (json.status === "ok" && json.evento) {
-      console.log("📥 Último evento:", json.evento);
-      actualizarEstado(json.evento);
-    } else {
-      console.log("ℹ️ Sin eventos registrados.");
-    }
-  } catch (error) {
-    console.error("❌ Error al consultar el último evento:", error);
-    mostrarModoDemo();
-  }
-}
-
-// =============================================================
 // 🎮 FUNCIONES DE CONTROL DEL CARRO
 // =============================================================
 function iniciarMovimiento(tipo) {
   lastMovimiento = tipo;
   movimientoActivo.innerText = `Moviendo: ${tipo}`;
-  enviarEvento(tipo);
+  enviarEventoWS(tipo);
 }
 
 function detenerMovimiento() {
   if (lastMovimiento) {
     movimientoActivo.innerText = "Detenido";
-    enviarEvento("Detenerse");
+    enviarEventoWS("Detenerse");
     lastMovimiento = "";
+  }
+}
+
+// =============================================================
+// 📡 ENVIAR EVENTOS POR WEBSOCKET
+// =============================================================
+function enviarEventoWS(tipo_evento) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn("⚠️ WebSocket no conectado, no se puede enviar evento");
+    mostrarModoDemo();
+    return;
+  }
+
+  const data = {
+    id_dispositivo: 1,
+    tipo_evento: tipo_evento,
+    detalle: `Movimiento: ${tipo_evento}`,
+    fecha_hora: new Date().toISOString(),
+  };
+
+  try {
+    ws.send(JSON.stringify(data));
+    console.log("📤 Evento enviado por WebSocket:", data);
+    actualizarEstado(data);
+  } catch (err) {
+    console.error("❌ Error al enviar evento por WebSocket:", err);
   }
 }
 
@@ -105,7 +81,7 @@ function ejecutarSecuencia() {
   if (secuencia.length === 0) return;
   secuencia.forEach((mov, i) => {
     setTimeout(() => {
-      enviarEvento(mov);
+      enviarEventoWS(mov);
     }, i * 1000);
   });
 }
@@ -147,7 +123,6 @@ function actualizarEstado(evento) {
   eventCount.innerText = eventoCount;
   eventCountBadge.innerText = eventoCount;
 
-  // Mostrar en lista lateral
   const div = document.createElement("div");
   div.classList.add("event-item");
   div.innerHTML = `<small>${new Date().toLocaleTimeString()}</small> - ${evento.tipo_evento}: ${evento.detalle}`;
@@ -182,8 +157,7 @@ function conectarWebSocket() {
     document.getElementById("connection-status").innerHTML =
       '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
     mostrarModoDemo();
-    // Reconexión automática
-    setTimeout(conectarWebSocket, 5000);
+    setTimeout(conectarWebSocket, 5000); // 🔁 Reconexión automática
   };
 
   ws.onerror = (error) => {
@@ -209,6 +183,5 @@ function mostrarModoDemo() {
 // 🚀 AL INICIAR LA PÁGINA
 // =============================================================
 window.addEventListener("DOMContentLoaded", () => {
-  obtenerUltimoEvento();
   conectarWebSocket();
 });
