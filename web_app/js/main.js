@@ -1,6 +1,7 @@
 // --- CONFIGURACIÓN ---
-const SERVER_URL = "http://98.91.45.27:5000"; // Flask-SocketIO
-const socket = io(SERVER_URL);
+const SERVER_URL = "http://98.91.45.27:5000"; // Dirección base del servidor Flask
+const WS_URL = "ws://98.91.45.27:5000/ws";    // Endpoint WebSocket puro
+let ws = null;
 
 // --- ESTADO INICIAL ---
 let eventoCount = 0;
@@ -21,7 +22,6 @@ const listaEventos = document.getElementById("listaEventos");
 // 📡 API REQUESTS (POST / GET)
 // =============================================================
 
-// --- Enviar evento al servidor Flask ---
 async function enviarEvento(tipo_evento) {
   const data = {
     id_dispositivo: 1,
@@ -51,7 +51,6 @@ async function enviarEvento(tipo_evento) {
   }
 }
 
-// --- Consultar el último evento registrado ---
 async function obtenerUltimoEvento() {
   try {
     const res = await fetch(`${SERVER_URL}/api/evento`);
@@ -156,38 +155,54 @@ function actualizarEstado(evento) {
 }
 
 // =============================================================
-// 🧩 MANEJO DE SOCKETS
+// 🌐 CONEXIÓN WEBSOCKET PURO
 // =============================================================
-socket.on("connect", () => {
-  console.log("✅ Conectado al servidor SocketIO");
-  document.getElementById("connection-status").innerHTML =
-    '<i class="fas fa-signal me-1 text-success"></i> Conectado';
-});
+function conectarWebSocket() {
+  console.log("🔌 Conectando al WebSocket...");
+  ws = new WebSocket(WS_URL);
 
-socket.on("disconnect", () => {
-  console.warn("⚠️ Desconectado de SocketIO");
-  document.getElementById("connection-status").innerHTML =
-    '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
-  mostrarModoDemo();
-});
+  ws.onopen = () => {
+    console.log("✅ Conectado al WebSocket!");
+    document.getElementById("connection-status").innerHTML =
+      '<i class="fas fa-signal me-1 text-success"></i> Conectado';
+  };
 
-socket.on("nuevo_evento", (data) => {
-  console.log("📡 Evento en tiempo real recibido:", data);
-  actualizarEstado(data);
-});
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log("📡 Mensaje recibido:", data);
+      actualizarEstado(data);
+    } catch (err) {
+      console.warn("⚠️ Mensaje no JSON:", event.data);
+    }
+  };
 
-socket.on("nuevo_obstaculo", (data) => {
-  console.log("🚧 Obstáculo detectado:", data);
-});
+  ws.onclose = () => {
+    console.warn("❌ Desconectado del WebSocket");
+    document.getElementById("connection-status").innerHTML =
+      '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
+    mostrarModoDemo();
+    // Reconexión automática
+    setTimeout(conectarWebSocket, 5000);
+  };
+
+  ws.onerror = (error) => {
+    console.error("⚠️ Error en WebSocket:", error);
+    ws.close();
+  };
+}
 
 // =============================================================
 // ⚙️ UTILIDADES
 // =============================================================
 function mostrarModoDemo() {
   const alert = document.getElementById("demo-alert");
-  alert.classList.remove("d-none");
-  document.getElementById("connection-mode").classList.replace("bg-success", "bg-warning");
-  document.getElementById("connection-mode").innerText = "Modo Demo";
+  if (alert) alert.classList.remove("d-none");
+  const mode = document.getElementById("connection-mode");
+  if (mode) {
+    mode.classList.replace("bg-success", "bg-warning");
+    mode.innerText = "Modo Demo";
+  }
 }
 
 // =============================================================
@@ -195,4 +210,5 @@ function mostrarModoDemo() {
 // =============================================================
 window.addEventListener("DOMContentLoaded", () => {
   obtenerUltimoEvento();
+  conectarWebSocket();
 });

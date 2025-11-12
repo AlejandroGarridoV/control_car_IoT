@@ -1,20 +1,25 @@
-# app.py
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from flask_sock import Sock
 from datetime import datetime
 from db import get_connection
 from mysql.connector import Error
+import json
 
 # --- CONFIGURACIÓN BÁSICA ---
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+sock = Sock(app)  # WebSocket puro
+CORS(app, resources={r"/*": {"origins": "*"}})
 
+# --- CLIENTES WEBSOCKET PUROS ---
+ws_clients = []
 
 # ------------------- ENDPOINTS -------------------
 
-# Registrar evento o consultar último evento
+# 📦 Registrar evento o consultar último evento
 @app.route('/api/evento', methods=['POST', 'GET'])
 def evento():
     conn = get_connection()
@@ -27,26 +32,24 @@ def evento():
     if request.method == 'POST':
         data = request.get_json(force=True)
         try:
-            cursor.callproc("sp_registrar_evento", [
-                data.get("id_dispositivo"),
-                data.get("tipo_evento"),
-                data.get("detalle")
-            ])
+            cursor.execute("""
+                INSERT INTO eventos (id_dispositivo, tipo_evento, detalle, fecha_hora)
+                VALUES (%s, %s, %s, NOW())
+            """, (data.get("id_dispositivo"), data.get("tipo_evento"), data.get("detalle")))
             conn.commit()
 
-            id_evento = None
-            for result in cursor.stored_results():
-                id_evento = result.fetchone()[0]
-
             evento_info = {
-                "id_evento": id_evento,
                 "id_dispositivo": data.get("id_dispositivo"),
                 "tipo_evento": data.get("tipo_evento"),
                 "detalle": data.get("detalle"),
-                "timestamp": datetime.now().isoformat()
+                "fecha_hora": datetime.now().isoformat()
             }
 
+            # Emitir por SocketIO
             socketio.emit('nuevo_evento', evento_info)
+            # Emitir también por WebSocket puro
+            enviar_a_ws_clientes({"evento": evento_info})
+
             return jsonify({"status": "ok", "mensaje": "Evento registrado", "evento": evento_info})
         except Error as e:
             return jsonify({"status": "error", "mensaje": str(e)}), 500
@@ -70,7 +73,7 @@ def evento():
             conn.close()
 
 
-# Registrar obstáculo o consultar último obstáculo
+# 🚧 Registrar obstáculo o consultar último obstáculo
 @app.route('/api/obstaculo', methods=['POST', 'GET'])
 def obstaculo():
     conn = get_connection()
@@ -82,24 +85,21 @@ def obstaculo():
     if request.method == 'POST':
         data = request.get_json(force=True)
         try:
-            cursor.callproc("sp_registrar_obstaculo", [
-                data.get("id_dispositivo"),
-                data.get("descripcion")
-            ])
+            cursor.execute("""
+                INSERT INTO obstaculos (id_dispositivo, descripcion, fecha_hora)
+                VALUES (%s, %s, NOW())
+            """, (data.get("id_dispositivo"), data.get("descripcion")))
             conn.commit()
 
-            id_obstaculo = None
-            for result in cursor.stored_results():
-                id_obstaculo = result.fetchone()[0]
-
             obstaculo_info = {
-                "id_obstaculo": id_obstaculo,
                 "id_dispositivo": data.get("id_dispositivo"),
                 "descripcion": data.get("descripcion"),
-                "timestamp": datetime.now().isoformat()
+                "fecha_hora": datetime.now().isoformat()
             }
 
             socketio.emit('nuevo_obstaculo', obstaculo_info)
+            enviar_a_ws_clientes({"obstaculo": obstaculo_info})
+
             return jsonify({"status": "ok", "mensaje": "Obstáculo registrado", "obstaculo": obstaculo_info})
         except Error as e:
             return jsonify({"status": "error", "mensaje": str(e)}), 500
@@ -122,7 +122,7 @@ def obstaculo():
             conn.close()
 
 
-# Registrar secuencia o consultar última secuencia
+# 🔁 Registrar secuencia o consultar última secuencia
 @app.route('/api/secuencia', methods=['POST', 'GET'])
 def secuencia():
     conn = get_connection()
@@ -134,24 +134,21 @@ def secuencia():
     if request.method == 'POST':
         data = request.get_json(force=True)
         try:
-            cursor.callproc("sp_registrar_secuencia", [
-                data.get("id_dispositivo"),
-                data.get("accion")
-            ])
+            cursor.execute("""
+                INSERT INTO secuencias (id_dispositivo, accion, fecha_hora)
+                VALUES (%s, %s, NOW())
+            """, (data.get("id_dispositivo"), data.get("accion")))
             conn.commit()
 
-            id_secuencia = None
-            for result in cursor.stored_results():
-                id_secuencia = result.fetchone()[0]
-
             secuencia_info = {
-                "id_secuencia": id_secuencia,
                 "id_dispositivo": data.get("id_dispositivo"),
                 "accion": data.get("accion"),
-                "timestamp": datetime.now().isoformat()
+                "fecha_hora": datetime.now().isoformat()
             }
 
             socketio.emit('nueva_secuencia', secuencia_info)
+            enviar_a_ws_clientes({"secuencia": secuencia_info})
+
             return jsonify({"status": "ok", "mensaje": "Secuencia registrada", "secuencia": secuencia_info})
         except Error as e:
             return jsonify({"status": "error", "mensaje": str(e)}), 500
@@ -174,7 +171,6 @@ def secuencia():
             conn.close()
 
 
-
 # ------------------- SOCKETIO -------------------
 
 @socketio.on('connect')
@@ -192,23 +188,51 @@ def handle_disconnect():
 def manejar_evento_socket(data):
     print(f"📨 Evento recibido desde cliente: {data}")
     socketio.emit('nuevo_evento', data)
-    emit("ack", {"status": "ok", "mensaje": "Evento recibido por el servidor"})
+    enviar_a_ws_clientes({"evento": data})
 
 
 @socketio.on('nuevo_obstaculo')
 def manejar_obstaculo_socket(data):
     print(f"📨 Obstáculo recibido desde cliente: {data}")
     socketio.emit('nuevo_obstaculo', data)
+    enviar_a_ws_clientes({"obstaculo": data})
 
 
 @socketio.on('nueva_secuencia')
 def manejar_secuencia_socket(data):
     print(f"📨 Secuencia recibida desde cliente: {data}")
     socketio.emit('nueva_secuencia', data)
+    enviar_a_ws_clientes({"secuencia": data})
 
+
+# ------------------- WEBSOCKET PURO -------------------
+
+@sock.route('/ws')
+def ws_endpoint(ws):
+    """Canal WebSocket estándar compatible con ESP8266."""
+    print("🌐 Cliente WebSocket conectado")
+    ws_clients.append(ws)
+    try:
+        while True:
+            msg = ws.receive()
+            if msg:
+                print(f"📩 Mensaje desde ESP8266: {msg}")
+    except Exception as e:
+        print("❌ Cliente WebSocket desconectado", e)
+    finally:
+        ws_clients.remove(ws)
+
+
+def enviar_a_ws_clientes(data):
+    """Envia datos en JSON a todos los clientes WebSocket conectados."""
+    json_data = json.dumps(data)
+    for client in list(ws_clients):
+        try:
+            client.send(json_data)
+        except Exception:
+            ws_clients.remove(client)
 
 # ------------------- RUN SERVER -------------------
 if __name__ == '__main__':
-    print("🚀 Servidor Flask-SocketIO corriendo en http://0.0.0.0:5000")
+    print("🚀 Servidor Flask con SocketIO + WS en http://0.0.0.0:5000")
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
