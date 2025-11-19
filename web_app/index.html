@@ -11,16 +11,20 @@
 <body>
   <nav class="navbar navbar-dark bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">
-        <i class="fas fa-car-side me-2"></i>Control del Carro IoT
-      </a>
-      <div class="d-flex">
-        <span id="connection-status" class="navbar-text">
-          <i class="fas fa-signal me-1"></i> Conectado
-        </span>
-      </div>
+        <a class="navbar-brand" href="#">
+            <i class="fas fa-car-side me-2"></i>Control del Carro IoT
+        </a>
+        <div class="d-flex">
+            <span id="connection-status" class="navbar-text">
+                <i class="fas fa-signal me-1"></i> Conectado
+            </span>
+            <!-- 🆕 Agregar este elemento para el estado del mando -->
+            <span id="controller-status" class="navbar-text ms-3">
+                <i class="fas fa-gamepad me-1 text-danger"></i> Mando No Conectado
+            </span>
+        </div>
     </div>
-  </nav>
+</nav>
 
   <!-- Alerta de modo demo -->
   <div id="demo-alert" class="alert alert-warning alert-dismissible fade show d-none" role="alert">

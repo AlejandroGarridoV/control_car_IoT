@@ -316,20 +316,39 @@ body {
 .status-5 { background: var(--warning); }
 .status-6 { background: var(--danger); }
 
+/* ============================================================= */
+/* 🆕 MEJORAS PARA LA LISTA DE EVENTOS - SCROLLBAR AUTOMÁTICO */
+/* ============================================================= */
+
 .events-list {
   overflow-y: auto;
   flex: 1;
+  max-height: 400px; /* Altura máxima para que aparezca scroll */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px; /* Espacio para el scrollbar */
+}
+
+/* Estado cuando hay muchos eventos */
+.events-list.has-many-events {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .event-item {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-left: 3px solid var(--primary);
-  margin-bottom: 8px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 6px;
   transition: all 0.3s ease;
   position: relative;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  flex-shrink: 0; /* Evita que los items se compriman */
 }
 
 .event-item:hover {
@@ -341,18 +360,39 @@ body {
 .event-item strong {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .event-time {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   font-weight: 500;
+  display: block;
+  margin-bottom: 2px;
 }
 
 .event-item .text-muted {
   color: var(--text-secondary) !important;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+}
+
+/* Indicador visual cuando hay scroll disponible */
+.events-list:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(transparent, var(--bg-card));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.events-list.scrollable:after {
+  opacity: 1;
 }
 
 .progress {
@@ -376,23 +416,39 @@ footer {
   padding: 1rem 0;
 }
 
-/* Scrollbar personalizado */
+/* ============================================================= */
+/* 🆕 SCROLLBAR MEJORADO Y MÁS VISIBLE */
+/* ============================================================= */
+
 .events-list::-webkit-scrollbar {
-  width: 4px;
+  width: 8px; /* Scrollbar más ancho */
 }
 
 .events-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
+  margin: 2px 0;
 }
 
 .events-list::-webkit-scrollbar-thumb {
-  background: var(--primary);
+  background: linear-gradient(to bottom, var(--primary), #4f46e5);
   border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .events-list::-webkit-scrollbar-thumb:hover {
-  background: #4f46e5;
+  background: linear-gradient(to bottom, #4f46e5, #4338ca);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+
+.events-list::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(to bottom, #4338ca, #3730a3);
+}
+
+/* Scrollbar para Firefox */
+.events-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) rgba(255, 255, 255, 0.05);
 }
 
 /* Responsive */
@@ -439,6 +495,10 @@ footer {
   .events-card {
     min-height: auto;
   }
+  
+  .events-list {
+    max-height: 300px; /* Menor altura en tablets */
+  }
 }
 
 @media (max-width: 768px) {
@@ -463,6 +523,15 @@ footer {
     width: 160px;
     height: 50px;
     font-size: 0.85rem;
+  }
+  
+  .events-list {
+    max-height: 250px; /* Menor altura en móviles */
+  }
+  
+  .event-item {
+    padding: 6px 8px;
+    font-size: 0.75rem;
   }
 }
 
@@ -553,6 +622,7 @@ footer {
   overflow-y: auto;
   border: 1px solid var(--border-light);
   flex: 1;
+  max-height: 150px; /* Scroll para secuencias también */
 }
 
 .sequence-item {
@@ -997,4 +1067,146 @@ footer {
     padding: 6px 8px;
     font-size: 0.7rem;
   }
+}
+
+/* ============================================================= */
+/* 🆕 CLASES UTILITARIAS PARA CONTROL DE SCROLL */
+/* ============================================================= */
+
+.scroll-limit-notice {
+  position: sticky;
+  top: 0;
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--primary);
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  text-align: center;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  z-index: 1;
+  backdrop-filter: blur(5px);
+}
+
+.events-count-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--danger);
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* ============================================================= */
+/* 🎮 ESTILOS PARA EL CONTROLADOR XBOX */
+/* ============================================================= */
+
+.controller-debug {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.8rem;
+    max-width: 300px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.controller-debug h6 {
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 4px;
+}
+
+.controller-button {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    border-radius: 4px;
+    text-align: center;
+    line-height: 24px;
+    margin: 2px;
+    font-size: 0.7rem;
+    transition: all 0.3s ease;
+}
+
+.controller-button.pressed {
+    background: var(--success);
+    transform: scale(1.1);
+}
+
+.controller-stick {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    position: relative;
+    margin: 5px;
+}
+
+.stick-position {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--primary);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.1s ease;
+}
+
+/* Efectos de vibración (simulados) */
+@keyframes controllerVibrate {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    50% { transform: translateX(0); }
+    75% { transform: translateX(2px); }
+    100% { transform: translateX(0); }
+}
+
+.controller-feedback {
+    animation: controllerVibrate 0.1s ease;
+}
+
+/* Indicador de conexión */
+#controller-status.connected {
+    color: var(--success) !important;
+}
+
+#controller-status.disconnected {
+    color: var(--danger) !important;
+}
+
+/* Tooltip para controles */
+.controller-tooltip {
+    position: absolute;
+    background: var(--dark);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    z-index: 1001;
+    border: 1px solid var(--border-light);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.controller-tooltip.show {
+    opacity: 1;
 }

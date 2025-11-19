@@ -1,6 +1,6 @@
 // --- CONFIGURACIÓN ---
-const SERVER_URL = "http://98.91.45.27:5000"; // Solo para referencia (ya no se usa fetch)
-const WS_URL = "ws://98.91.45.27:5000/ws";    // Endpoint WebSocket puro
+const SERVER_URL = "http://98.91.45.27:5000";
+const WS_URL = "ws://98.91.45.27:5000/ws";
 let ws = null;
 
 // --- ESTADO INICIAL ---
@@ -11,29 +11,26 @@ let secuencia = [];
 let secuenciasGuardadas = [];
 
 // --- ELEMENTOS DOM ---
-const statusText = document.getElementById("status-text");
-const statusDetail = document.getElementById("status-detail");
-const progressBar = document.getElementById("progress-bar");
-const lastUpdate = document.getElementById("last-update");
-const eventCount = document.getElementById("event-count");
-const eventCountBadge = document.getElementById("event-count-badge");
-const movimientoActivo = document.getElementById("movimiento-activo");
-const listaEventos = document.getElementById("listaEventos");
+let statusText, statusDetail, progressBar, lastUpdate, eventCount, eventCountBadge, movimientoActivo, listaEventos;
 
 // =============================================================
 // 🎮 FUNCIONES DE CONTROL DEL CARRO
 // =============================================================
 function iniciarMovimiento(tipo) {
   lastMovimiento = tipo;
-  movimientoActivo.innerText = `Moviendo: ${tipo}`;
-  movimientoActivo.classList.add('activo');
+  if (movimientoActivo) {
+    movimientoActivo.innerText = `Moviendo: ${tipo}`;
+    movimientoActivo.classList.add('activo');
+  }
   enviarEventoWS(tipo);
 }
 
 function detenerMovimiento() {
   if (lastMovimiento) {
-    movimientoActivo.innerText = "Detenido";
-    movimientoActivo.classList.remove('activo');
+    if (movimientoActivo) {
+      movimientoActivo.innerText = "Detenido";
+      movimientoActivo.classList.remove('activo');
+    }
     enviarEventoWS("Detenerse");
     lastMovimiento = "";
   }
@@ -44,7 +41,8 @@ function detenerMovimiento() {
 // =============================================================
 function enviarEventoWS(tipo_evento) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
-    console.warn("⚠️ WebSocket no conectado, no se puede enviar evento");
+    console.warn("⚠️ WebSocket no conectado, intentando reconectar...");
+    conectarWebSocket();
     mostrarModoDemo();
     return;
   }
@@ -62,6 +60,7 @@ function enviarEventoWS(tipo_evento) {
     actualizarEstado(data);
   } catch (err) {
     console.error("❌ Error al enviar evento por WebSocket:", err);
+    mostrarModoDemo();
   }
 }
 
@@ -89,10 +88,13 @@ function ejecutarSecuencia() {
     return;
   }
   
-  document.getElementById('secuencia-activa-info').innerHTML = `
-    <strong>Ejecutando secuencia actual</strong><br>
-    <small>${secuencia.length} movimientos</small>
-  `;
+  const secuenciaActivaInfo = document.getElementById('secuencia-activa-info');
+  if (secuenciaActivaInfo) {
+    secuenciaActivaInfo.innerHTML = `
+      <strong>Ejecutando secuencia actual</strong><br>
+      <small>${secuencia.length} movimientos</small>
+    `;
+  }
   
   secuencia.forEach((mov, i) => {
     setTimeout(() => {
@@ -100,12 +102,15 @@ function ejecutarSecuencia() {
       
       // Actualizar progreso
       const progreso = ((i + 1) / secuencia.length) * 100;
-      document.getElementById('progreso-secuencia').style.width = `${progreso}%`;
+      const progresoSecuencia = document.getElementById('progreso-secuencia');
+      if (progresoSecuencia) {
+        progresoSecuencia.style.width = `${progreso}%`;
+      }
       
       if (i === secuencia.length - 1) {
         setTimeout(() => {
-          document.getElementById('secuencia-activa-info').innerHTML = '';
-          document.getElementById('progreso-secuencia').style.width = '0%';
+          if (secuenciaActivaInfo) secuenciaActivaInfo.innerHTML = '';
+          if (progresoSecuencia) progresoSecuencia.style.width = '0%';
         }, 1000);
       }
     }, i * 1000);
@@ -119,6 +124,8 @@ function limpiarSecuencia() {
 
 function actualizarSecuenciaUI() {
   const listaSecuencia = document.getElementById("listaSecuencia");
+  if (!listaSecuencia) return;
+  
   listaSecuencia.innerHTML = "";
   if (secuencia.length === 0) {
     listaSecuencia.innerHTML = `<div class="empty-sequence">
@@ -139,7 +146,6 @@ function actualizarSecuenciaUI() {
 // 💾 ALMACENAMIENTO DE SECUENCIAS
 // =============================================================
 
-// Cargar secuencias guardadas al iniciar
 function cargarSecuenciasGuardadas() {
   const guardadas = localStorage.getItem('secuenciasCarro');
   if (guardadas) {
@@ -148,7 +154,6 @@ function cargarSecuenciasGuardadas() {
   }
 }
 
-// Guardar secuencia actual
 function guardarSecuencia() {
   if (secuencia.length === 0) {
     alert('❌ No hay movimientos en la secuencia para guardar');
@@ -172,36 +177,41 @@ function guardarSecuencia() {
   
   // Feedback visual
   const btn = document.getElementById('btn-guardar-secuencia');
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-check"></i> Guardada!';
-  setTimeout(() => {
-    btn.innerHTML = originalText;
-  }, 2000);
+  if (btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Guardada!';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+    }, 2000);
+  }
 }
 
-// Ejecutar secuencia guardada
 function ejecutarSecuenciaGuardada(id) {
   const secuenciaEncontrada = secuenciasGuardadas.find(s => s.id === id);
   if (secuenciaEncontrada) {
-    // Mostrar información de la secuencia
-    document.getElementById('secuencia-activa-info').innerHTML = `
-      <strong>Ejecutando:</strong> ${secuenciaEncontrada.nombre}<br>
-      <small>${secuenciaEncontrada.movimientos.length} movimientos</small>
-    `;
+    const secuenciaActivaInfo = document.getElementById('secuencia-activa-info');
+    if (secuenciaActivaInfo) {
+      secuenciaActivaInfo.innerHTML = `
+        <strong>Ejecutando:</strong> ${secuenciaEncontrada.nombre}<br>
+        <small>${secuenciaEncontrada.movimientos.length} movimientos</small>
+      `;
+    }
     
-    // Ejecutar movimientos
     secuenciaEncontrada.movimientos.forEach((mov, i) => {
       setTimeout(() => {
         enviarEventoWS(mov);
         
         // Actualizar progreso
         const progreso = ((i + 1) / secuenciaEncontrada.movimientos.length) * 100;
-        document.getElementById('progreso-secuencia').style.width = `${progreso}%`;
+        const progresoSecuencia = document.getElementById('progreso-secuencia');
+        if (progresoSecuencia) {
+          progresoSecuencia.style.width = `${progreso}%`;
+        }
         
         if (i === secuenciaEncontrada.movimientos.length - 1) {
           setTimeout(() => {
-            document.getElementById('secuencia-activa-info').innerHTML = '';
-            document.getElementById('progreso-secuencia').style.width = '0%';
+            if (secuenciaActivaInfo) secuenciaActivaInfo.innerHTML = '';
+            if (progresoSecuencia) progresoSecuencia.style.width = '0%';
           }, 1000);
         }
       }, i * 1000);
@@ -209,7 +219,6 @@ function ejecutarSecuenciaGuardada(id) {
   }
 }
 
-// Eliminar secuencia guardada
 function eliminarSecuenciaGuardada(id, event) {
   event.stopPropagation();
   if (confirm('¿Eliminar esta secuencia?')) {
@@ -219,12 +228,10 @@ function eliminarSecuenciaGuardada(id, event) {
   }
 }
 
-// Guardar en localStorage
 function guardarEnLocalStorage() {
   localStorage.setItem('secuenciasCarro', JSON.stringify(secuenciasGuardadas));
 }
 
-// Actualizar UI de secuencias guardadas
 function actualizarListaSecuenciasGuardadas() {
   const lista = document.getElementById('lista-secuencias-guardadas');
   if (!lista) return;
@@ -261,7 +268,6 @@ function actualizarListaSecuenciasGuardadas() {
   `).join('');
 }
 
-// Exportar secuencias
 function exportarSecuencias() {
   if (secuenciasGuardadas.length === 0) {
     alert('No hay secuencias para exportar');
@@ -277,7 +283,6 @@ function exportarSecuencias() {
   link.click();
 }
 
-// Importar secuencias
 function importarSecuencias() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -313,20 +318,24 @@ function importarSecuencias() {
 // 🧠 ACTUALIZAR INTERFAZ
 // =============================================================
 function actualizarEstado(evento) {
-  statusText.innerText = evento.tipo_evento || "Sin tipo";
-  statusDetail.innerText = evento.detalle || "Sin detalle";
+  // Verificar que los elementos existan antes de actualizarlos
+  if (statusText) statusText.innerText = evento.tipo_evento || "Sin tipo";
+  if (statusDetail) statusDetail.innerText = evento.detalle || "Sin detalle";
+  
   progreso = Math.min(progreso + 10, 100);
-  progressBar.style.width = `${progreso}%`;
-  lastUpdate.innerText = new Date().toLocaleTimeString();
+  if (progressBar) progressBar.style.width = `${progreso}%`;
+  if (lastUpdate) lastUpdate.innerText = new Date().toLocaleTimeString();
 
   eventoCount++;
-  eventCount.innerText = eventoCount;
-  eventCountBadge.innerText = eventoCount;
+  if (eventCount) eventCount.innerText = eventoCount;
+  if (eventCountBadge) eventCountBadge.innerText = eventoCount;
 
-  const div = document.createElement("div");
-  div.classList.add("event-item");
-  div.innerHTML = `<small>${new Date().toLocaleTimeString()}</small> - ${evento.tipo_evento}: ${evento.detalle}`;
-  listaEventos.prepend(div);
+  if (listaEventos) {
+    const div = document.createElement("div");
+    div.classList.add("event-item");
+    div.innerHTML = `<small>${new Date().toLocaleTimeString()}</small> - ${evento.tipo_evento}: ${evento.detalle}`;
+    listaEventos.prepend(div);
+  }
 }
 
 // =============================================================
@@ -334,36 +343,54 @@ function actualizarEstado(evento) {
 // =============================================================
 function conectarWebSocket() {
   console.log("🔌 Conectando al WebSocket...");
-  ws = new WebSocket(WS_URL);
+  
+  try {
+    ws = new WebSocket(WS_URL);
 
-  ws.onopen = () => {
-    console.log("✅ Conectado al WebSocket!");
-    document.getElementById("connection-status").innerHTML =
-      '<i class="fas fa-signal me-1 text-success"></i> Conectado';
-  };
+    ws.onopen = () => {
+      console.log("✅ Conectado al WebSocket!");
+      const connectionStatus = document.getElementById("connection-status");
+      if (connectionStatus) {
+        connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-success"></i> Conectado';
+      }
+      // Ocultar alerta demo si está visible
+      const demoAlert = document.getElementById("demo-alert");
+      if (demoAlert) demoAlert.classList.add("d-none");
+    };
 
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      console.log("📡 Mensaje recibido:", data);
-      actualizarEstado(data);
-    } catch (err) {
-      console.warn("⚠️ Mensaje no JSON:", event.data);
-    }
-  };
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("📡 Mensaje recibido:", data);
+        actualizarEstado(data);
+      } catch (err) {
+        console.warn("⚠️ Mensaje no JSON:", event.data);
+      }
+    };
 
-  ws.onclose = () => {
-    console.warn("❌ Desconectado del WebSocket");
-    document.getElementById("connection-status").innerHTML =
-      '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
+    ws.onclose = (event) => {
+      console.warn("❌ Desconectado del WebSocket:", event.code, event.reason);
+      const connectionStatus = document.getElementById("connection-status");
+      if (connectionStatus) {
+        connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
+      }
+      mostrarModoDemo();
+      
+      // 🔁 Reconexión automática después de 3 segundos
+      setTimeout(() => {
+        console.log("🔄 Intentando reconectar WebSocket...");
+        conectarWebSocket();
+      }, 3000);
+    };
+
+    ws.onerror = (error) => {
+      console.error("⚠️ Error en WebSocket:", error);
+      mostrarModoDemo();
+    };
+  } catch (error) {
+    console.error("❌ Error al crear WebSocket:", error);
     mostrarModoDemo();
-    setTimeout(conectarWebSocket, 5000); // 🔁 Reconexión automática
-  };
-
-  ws.onerror = (error) => {
-    console.error("⚠️ Error en WebSocket:", error);
-    ws.close();
-  };
+  }
 }
 
 // =============================================================
@@ -387,7 +414,33 @@ function cargarObstaculos() {
 // =============================================================
 // 🚀 AL INICIAR LA PÁGINA
 // =============================================================
+function inicializarElementosDOM() {
+  // Inicializar todas las referencias a elementos DOM
+  statusText = document.getElementById("status-text");
+  statusDetail = document.getElementById("status-detail");
+  progressBar = document.getElementById("progress-bar");
+  lastUpdate = document.getElementById("last-update");
+  eventCount = document.getElementById("event-count");
+  eventCountBadge = document.getElementById("event-count-badge");
+  movimientoActivo = document.getElementById("movimiento-activo");
+  listaEventos = document.getElementById("listaEventos");
+  
+  console.log("Elementos DOM inicializados:", {
+    statusText: !!statusText,
+    statusDetail: !!statusDetail,
+    progressBar: !!progressBar,
+    movimientoActivo: !!movimientoActivo,
+    listaEventos: !!listaEventos
+  });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 Inicializando aplicación...");
+  
+  // Primero inicializar elementos DOM
+  inicializarElementosDOM();
+  
+  // Luego conectar WebSocket y cargar datos
   conectarWebSocket();
   cargarSecuenciasGuardadas();
   actualizarSecuenciaUI();
@@ -415,4 +468,349 @@ window.addEventListener("DOMContentLoaded", () => {
       this.classList.remove('presionado');
     });
   });
+  
+  console.log("✅ Aplicación inicializada correctamente");
+});
+
+// =============================================================
+// 🎮 CONTROL CON MANDO DE XBOX
+// =============================================================
+
+class XboxController {
+    constructor() {
+        this.connected = false;
+        this.gamepadIndex = null;
+        this.buttons = {};
+        this.axes = [];
+        this.deadZone = 0.3; // Zona muerta para evitar drift
+        this.lastStates = {};
+        this.animationFrame = null;
+        
+        // Mapeo de botones de Xbox Controller
+        this.buttonMap = {
+            0: 'A',      // A button
+            1: 'B',      // B button  
+            2: 'X',      // X button
+            3: 'Y',      // Y button
+            4: 'LB',     // Left bumper
+            5: 'RB',     // Right bumper
+            6: 'LT',     // Left trigger
+            7: 'RT',     // Right trigger
+            8: 'View',   // View/Select button
+            9: 'Menu',   // Menu/Start button
+            10: 'LS',    // Left stick press
+            11: 'RS',    // Right stick press
+            12: 'Up',    // D-pad up
+            13: 'Down',  // D-pad down
+            14: 'Left',  // D-pad left
+            15: 'Right'  // D-pad right
+        };
+
+        // Mapeo de ejes
+        this.axisMap = {
+            0: 'LS_Horizontal', // Left stick horizontal
+            1: 'LS_Vertical',   // Left stick vertical  
+            2: 'RS_Horizontal', // Right stick horizontal
+            3: 'RS_Vertical'    // Right stick vertical
+        };
+
+        // Mapeo de controles a movimientos
+        this.controlMap = {
+            'LS_Up': 'Adelante',
+            'LS_Down': 'Atrás', 
+            'LS_Left': 'Izquierda',
+            'LS_Right': 'Derecha',
+            'DPad_Up': 'Adelante',
+            'DPad_Down': 'Atrás',
+            'DPad_Left': 'Izquierda', 
+            'DPad_Right': 'Derecha',
+            'A': 'Detenerse',
+            'B': 'Demo',
+            'X': 'Curva Izquierda Adelante',
+            'Y': 'Curva Derecha Adelante',
+            'LB': 'Curva Izquierda Atrás',
+            'RB': 'Curva Derecha Atrás'
+        };
+
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.updateControllerStatus();
+    }
+
+    setupEventListeners() {
+        window.addEventListener("gamepadconnected", (e) => {
+            console.log("🎮 Mando conectado:", e.gamepad);
+            this.gamepadIndex = e.gamepad.index;
+            this.connected = true;
+            this.updateControllerStatus();
+            this.startPolling();
+        });
+
+        window.addEventListener("gamepaddisconnected", (e) => {
+            console.log("🎮 Mando desconectado:", e.gamepad);
+            if (this.gamepadIndex === e.gamepad.index) {
+                this.connected = false;
+                this.gamepadIndex = null;
+                this.updateControllerStatus();
+                this.stopPolling();
+            }
+        });
+    }
+
+    startPolling() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+        }
+        
+        const poll = () => {
+            this.update();
+            this.animationFrame = requestAnimationFrame(poll);
+        };
+        
+        poll();
+    }
+
+    stopPolling() {
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+    }
+
+    update() {
+        if (!this.connected || this.gamepadIndex === null) return;
+
+        const gamepad = navigator.getGamepads()[this.gamepadIndex];
+        if (!gamepad) return;
+
+        this.updateButtons(gamepad.buttons);
+        this.updateAxes(gamepad.axes);
+        this.handleControls();
+    }
+
+    updateButtons(buttons) {
+        buttons.forEach((button, index) => {
+            const buttonName = this.buttonMap[index];
+            const pressed = button.pressed;
+            const value = button.value;
+            
+            // Solo procesar si el estado cambió
+            if (this.lastStates[buttonName] !== pressed) {
+                this.buttons[buttonName] = { pressed, value };
+                this.lastStates[buttonName] = pressed;
+                
+                if (pressed) {
+                    console.log(`🎮 Botón ${buttonName} presionado`);
+                    this.handleButtonPress(buttonName);
+                }
+            }
+        });
+    }
+
+    updateAxes(axes) {
+        this.axes = axes.map((axis, index) => {
+            const axisName = this.axisMap[index];
+            // Aplicar zona muerta
+            const value = Math.abs(axis) > this.deadZone ? axis : 0;
+            return { name: axisName, value };
+        });
+    }
+
+    handleControls() {
+        // Procesar ejes (joysticks)
+        this.handleStickControls();
+    }
+
+    handleStickControls() {
+        const leftStick = {
+            x: this.axes[0]?.value || 0,
+            y: this.axes[1]?.value || 0
+        };
+
+        // Solo procesar si hay movimiento significativo
+        if (Math.abs(leftStick.x) > this.deadZone || Math.abs(leftStick.y) > this.deadZone) {
+            this.handleStickMovement(leftStick);
+        } else {
+            // Si no hay movimiento y había movimiento antes, detener
+            if (this.lastStickMovement) {
+                detenerMovimiento();
+                this.lastStickMovement = null;
+            }
+        }
+    }
+
+    handleStickMovement(stick) {
+        const { x, y } = stick;
+        let movimiento = '';
+        
+        // Determinar dirección basada en ángulos
+        const angle = Math.atan2(y, x);
+        const degrees = angle * (180 / Math.PI);
+        const normalizedDegrees = (degrees + 360) % 360;
+
+        // Definir sectores de movimiento
+        if (Math.abs(x) > Math.abs(y)) {
+            // Movimiento horizontal predominante
+            if (x > this.deadZone) {
+                movimiento = 'Derecha';
+            } else if (x < -this.deadZone) {
+                movimiento = 'Izquierda';
+            }
+        } else {
+            // Movimiento vertical predominante
+            if (y > this.deadZone) {
+                movimiento = 'Atrás';
+            } else if (y < -this.deadZone) {
+                movimiento = 'Adelante';
+            }
+        }
+
+        // Movimientos diagonales (curvas)
+        if (Math.abs(x) > this.deadZone && Math.abs(y) > this.deadZone) {
+            if (x > this.deadZone && y < -this.deadZone) {
+                movimiento = 'Curva Derecha Adelante';
+            } else if (x < -this.deadZone && y < -this.deadZone) {
+                movimiento = 'Curva Izquierda Adelante';
+            } else if (x > this.deadZone && y > this.deadZone) {
+                movimiento = 'Curva Derecha Atrás';
+            } else if (x < -this.deadZone && y > this.deadZone) {
+                movimiento = 'Curva Izquierda Atrás';
+            }
+        }
+
+        if (movimiento && movimiento !== this.lastStickMovement) {
+            iniciarMovimiento(movimiento);
+            this.lastStickMovement = movimiento;
+        }
+    }
+
+    handleButtonPress(buttonName) {
+        const movimiento = this.controlMap[buttonName];
+        if (movimiento) {
+            if (movimiento === 'Detenerse') {
+                detenerMovimiento();
+            } else {
+                iniciarMovimiento(movimiento);
+                
+                // Para botones que no son de movimiento continuo, detener después de un tiempo
+                if (!['Adelante', 'Atrás', 'Izquierda', 'Derecha'].includes(movimiento)) {
+                    setTimeout(() => {
+                        detenerMovimiento();
+                    }, 500);
+                }
+            }
+        }
+
+        // Botones para secuencias
+        this.handleSequenceButtons(buttonName);
+    }
+
+    handleSequenceButtons(buttonName) {
+        switch(buttonName) {
+            case 'View': // Select button
+                limpiarSecuencia();
+                break;
+            case 'Menu': // Start button  
+                ejecutarSecuencia();
+                break;
+            case 'LS': // Left stick press
+                agregarMovimientoPersonalizado();
+                break;
+        }
+    }
+
+    updateControllerStatus() {
+        const statusElement = document.getElementById('controller-status');
+        if (!statusElement) return;
+
+        if (this.connected) {
+            statusElement.innerHTML = 
+                '<i class="fas fa-gamepad me-1 text-success"></i> Mando Xbox Conectado';
+            statusElement.classList.remove('text-danger');
+            statusElement.classList.add('text-success');
+        } else {
+            statusElement.innerHTML = 
+                '<i class="fas fa-gamepad me-1 text-danger"></i> Mando No Conectado';
+            statusElement.classList.remove('text-success');
+            statusElement.classList.add('text-danger');
+        }
+    }
+
+    getControllerInfo() {
+        if (!this.connected || this.gamepadIndex === null) return null;
+        
+        const gamepad = navigator.getGamepads()[this.gamepadIndex];
+        return {
+            id: gamepad.id,
+            index: gamepad.index,
+            buttons: gamepad.buttons.length,
+            axes: gamepad.axes.length,
+            connected: gamepad.connected
+        };
+    }
+}
+
+// =============================================================
+// 🎮 INICIALIZACIÓN DEL CONTROLADOR
+// =============================================================
+
+let xboxController = null;
+
+function initXboxController() {
+    xboxController = new XboxController();
+    
+    // Verificar si ya hay mandos conectados al cargar la página
+    const gamepads = navigator.getGamepads();
+    for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && gamepads[i].id.toLowerCase().includes('xbox')) {
+            console.log("🎮 Mando Xbox ya conectado:", gamepads[i]);
+            window.dispatchEvent(new GamepadEvent('gamepadconnected', {
+                gamepad: gamepads[i]
+            }));
+            break;
+        }
+    }
+}
+
+// =============================================================
+// 🔧 HERRAMIENTAS DE DEBUG (opcional)
+// =============================================================
+
+function showControllerDebug() {
+    if (!xboxController || !xboxController.connected) {
+        console.log("🎮 No hay mando conectado");
+        return;
+    }
+
+    const gamepad = navigator.getGamepads()[xboxController.gamepadIndex];
+    console.log("🎮 Estado del mando:", {
+        id: gamepad.id,
+        buttons: gamepad.buttons.map(b => b.pressed),
+        axes: gamepad.axes,
+        mapping: gamepad.mapping
+    });
+}
+
+// Agregar al inicializador principal
+window.addEventListener("DOMContentLoaded", () => {
+    // ... código existente ...
+    
+    // Inicializar control de Xbox
+    initXboxController();
+    
+    // Agregar elemento de estado del controlador si no existe
+    if (!document.getElementById('controller-status')) {
+        const statusElement = document.createElement('div');
+        statusElement.id = 'controller-status';
+        statusElement.className = 'navbar-text ms-3';
+        statusElement.innerHTML = '<i class="fas fa-gamepad me-1 text-danger"></i> Mando No Conectado';
+        
+        const navbar = document.querySelector('.navbar .d-flex');
+        if (navbar) {
+            navbar.appendChild(statusElement);
+        }
+    }
 });
