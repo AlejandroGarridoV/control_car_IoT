@@ -29,178 +29,208 @@
   </div>
 
   <div class="container-fluid mt-3">
-    <div class="row">
-      <!-- Panel de Control Principal -->
-      <div class="col-lg-6 col-xl-5">
-        <div class="control-panel text-center mb-4">
-          <h2 class="mb-4"><i class="fas fa-gamepad me-2"></i>Control Principal</h2>
-          <p class="text-muted mb-3 small">Mantén presionado para mover, suelta para detener</p>
-          <div class="control-grid">
-            <button class="control-btn btn-forward" 
-                    onmousedown="iniciarMovimiento('Adelante')" 
-                    onmouseup="detenerMovimiento()"
-                    onmouseleave="detenerMovimiento()"
-                    ontouchstart="iniciarMovimiento('Adelante')" 
-                    ontouchend="detenerMovimiento()"
-                    ontouchcancel="detenerMovimiento()">
+    <!-- Sección Principal: Controles, Secuencias y Eventos en una misma fila -->
+    <div class="row main-controls-row">
+      <!-- SECUENCIAS - IZQUIERDA -->
+      <div class="col-lg-3">
+        <div class="status-card h-100 sequences-card">
+          <h4><i class="fas fa-list-alt me-2"></i>Secuencias</h4>
+          <p class="text-muted mb-3 small">Programa y guarda movimientos automáticos</p>
+          
+          <!-- Controles de secuencia -->
+          <div class="sequence-controls mb-3">
+            <button class="movement-btn movement-forward" onclick="agregarMovimiento('Adelante')">
               <i class="fas fa-arrow-up"></i>
-              <span>Adelante</span>
             </button>
-            <button class="control-btn btn-left" 
-                    onmousedown="iniciarMovimiento('Izquierda')" 
-                    onmouseup="detenerMovimiento()"
-                    onmouseleave="detenerMovimiento()"
-                    ontouchstart="iniciarMovimiento('Izquierda')" 
-                    ontouchend="detenerMovimiento()"
-                    ontouchcancel="detenerMovimiento()">
+            <button class="movement-btn movement-left" onclick="agregarMovimiento('Izquierda')">
               <i class="fas fa-arrow-left"></i>
-              <span>Izquierda</span>
             </button>
-            <button class="control-btn btn-stop" onclick="enviarEvento('Detenerse')">
+            <button class="movement-btn movement-stop" onclick="agregarMovimiento('Detenerse')">
               <i class="fas fa-stop"></i>
-              <span>Detener</span>
             </button>
-            <button class="control-btn btn-right" 
-                    onmousedown="iniciarMovimiento('Derecha')" 
-                    onmouseup="detenerMovimiento()"
-                    onmouseleave="detenerMovimiento()"
-                    ontouchstart="iniciarMovimiento('Derecha')" 
-                    ontouchend="detenerMovimiento()"
-                    ontouchcancel="detenerMovimiento()">
+            <button class="movement-btn movement-right" onclick="agregarMovimiento('Derecha')">
               <i class="fas fa-arrow-right"></i>
-              <span>Derecha</span>
             </button>
-            <button class="control-btn btn-backward" 
-                    onmousedown="iniciarMovimiento('Atrás')" 
-                    onmouseup="detenerMovimiento()"
-                    onmouseleave="detenerMovimiento()"
-                    ontouchstart="iniciarMovimiento('Atrás')" 
-                    ontouchend="detenerMovimiento()"
-                    ontouchcancel="detenerMovimiento()">
+            <button class="movement-btn movement-backward" onclick="agregarMovimiento('Atrás')">
               <i class="fas fa-arrow-down"></i>
-              <span>Atrás</span>
             </button>
-            <button class="control-btn btn-dance" onclick="enviarEvento('Bailar')">
+            <button class="movement-btn movement-dance" onclick="agregarMovimiento('Demo')">
               <i class="fas fa-music"></i>
-              <span>Bailar</span>
             </button>
-          </div>
-          <div class="mt-3">
-            <small class="text-muted" id="movimiento-activo">
-              <!-- Aquí se mostrará el movimiento activo -->
-            </small>
-          </div>
-        </div>
-
-        <!-- Estado e Información en Tarjetas Laterales -->
-        <div class="row">
-          <div class="col-md-6">
-            <div class="status-card h-100">
-              <h4><i class="fas fa-info-circle me-2"></i>Estado Actual</h4>
-              <div id="estado" class="mt-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span id="status-indicator" class="status-indicator status-1"></span>
-                  <span id="status-text" class="fw-bold">Cargando...</span>
-                </div>
-                <div id="status-detail" class="text-muted small">Esperando datos del dispositivo</div>
-                <div class="progress mt-2">
-                  <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                </div>
-              </div>
-            </div>
           </div>
           
-          <div class="col-md-6">
-            <div class="status-card h-100">
-              <h4><i class="fas fa-microchip me-2"></i>Información</h4>
-              <div class="mt-3">
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="small">ID Dispositivo:</span>
-                  <span class="fw-bold">#1</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="small">Última actualización:</span>
-                  <span id="last-update" class="small">--:--:--</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                  <span class="small">Eventos registrados:</span>
-                  <span id="event-count" class="fw-bold">0</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                  <span class="small">Modo:</span>
-                  <span id="connection-mode" class="badge bg-success">En Línea</span>
-                </div>
+          <!-- Secuencia actual -->
+          <div class="sequence-actions mb-3">
+            <button class="sequence-btn btn-add" onclick="agregarMovimientoPersonalizado()">
+              <i class="fas fa-plus"></i> Aleatorio
+            </button>
+            <button class="sequence-btn btn-execute" onclick="ejecutarSecuencia()">
+              <i class="fas fa-play"></i> Ejecutar
+            </button>
+            <button class="sequence-btn btn-clear" onclick="limpiarSecuencia()">
+              <i class="fas fa-trash"></i> Limpiar
+            </button>
+            <button class="sequence-btn btn-save" id="btn-guardar-secuencia" onclick="guardarSecuencia()">
+              <i class="fas fa-save"></i> Guardar
+            </button>
+          </div>
+          
+          <div class="sequence-list mb-3" id="listaSecuencia">
+            <div class="empty-sequence">
+              <i class="fas fa-list-ul fa-lg mb-2"></i>
+              <p class="small">No hay movimientos</p>
+            </div>
+          </div>
+
+          <!-- Información de secuencia activa -->
+          <div id="secuencia-activa-info" class="small text-center mb-2"></div>
+          <div class="progress" style="height: 4px;">
+            <div id="progreso-secuencia" class="progress-bar bg-success" style="width: 0%; transition: width 0.5s;"></div>
+          </div>
+
+          <!-- Secuencias guardadas -->
+          <div class="mt-3 pt-3 border-top border-secondary">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0"><i class="fas fa-bookmark me-1"></i>Secuencias Guardadas</h6>
+              <div>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="importarSecuencias()" title="Importar">
+                  <i class="fas fa-file-import"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-success" onclick="exportarSecuencias()" title="Exportar">
+                  <i class="fas fa-file-export"></i>
+                </button>
               </div>
+            </div>
+            <div id="lista-secuencias-guardadas" class="saved-sequences-list">
+              <!-- Las secuencias guardadas aparecerán aquí -->
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Sección Derecha: Secuencias y Eventos -->
-      <div class="col-lg-6 col-xl-7">
-        <div class="row">
-          <!-- Programar Secuencias -->
-          <div class="col-md-6">
-            <div class="status-card h-100">
-              <h4><i class="fas fa-list-alt me-2"></i>Secuencias</h4>
-              <p class="text-muted mb-3 small">Programa movimientos automáticos</p>
-              
-              <div class="sequence-controls mb-3">
-                <button class="movement-btn movement-forward" onclick="agregarMovimiento('Adelante')">
-                  <i class="fas fa-arrow-up"></i>
-                </button>
-                <button class="movement-btn movement-left" onclick="agregarMovimiento('Izquierda')">
-                  <i class="fas fa-arrow-left"></i>
-                </button>
-                <button class="movement-btn movement-stop" onclick="agregarMovimiento('Detenerse')">
-                  <i class="fas fa-stop"></i>
-                </button>
-                <button class="movement-btn movement-right" onclick="agregarMovimiento('Derecha')">
-                  <i class="fas fa-arrow-right"></i>
-                </button>
-                <button class="movement-btn movement-backward" onclick="agregarMovimiento('Atrás')">
-                  <i class="fas fa-arrow-down"></i>
-                </button>
-                <button class="movement-btn movement-dance" onclick="agregarMovimiento('Bailar')">
-                  <i class="fas fa-music"></i>
-                </button>
-              </div>
-              
-              <div class="sequence-actions mb-3">
-                <button class="sequence-btn btn-add" onclick="agregarMovimientoPersonalizado()">
-                  <i class="fas fa-plus"></i> Aleatorio
-                </button>
-                <button class="sequence-btn btn-execute" onclick="ejecutarSecuencia()">
-                  <i class="fas fa-play"></i> Ejecutar
-                </button>
-                <button class="sequence-btn btn-clear" onclick="limpiarSecuencia()">
-                  <i class="fas fa-trash"></i> Limpiar
-                </button>
-              </div>
-              
-              <div class="sequence-list" id="listaSecuencia">
-                <div class="empty-sequence">
-                  <i class="fas fa-list-ul fa-lg mb-2"></i>
-                  <p class="small">No hay movimientos</p>
-                </div>
-              </div>
-            </div>
+      <!-- CONTROLES PRINCIPALES - CENTRO -->
+      <div class="col-lg-6">
+        <div class="control-panel text-center">
+          <h2 class="mb-4"><i class="fas fa-gamepad me-2"></i>Control Principal</h2>
+          <p class="text-muted mb-3 small">Mantén presionado para mover, suelta para detener</p>
+
+          <!-- Cuadrícula principal con curvas integradas -->
+          <div class="control-grid-integrated">
+            <!-- Fila 1: Curva Izquierda Adelante - Adelante - Curva Derecha Adelante -->
+            <button class="control-btn btn-curve-fa curve-top-left" 
+              onmousedown="iniciarMovimiento('Curva Izquierda Adelante')"
+              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Curva Izquierda Adelante')" 
+              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-up rotate-45-left"></i>
+              <span>Curva Izq<br>Adelante</span>
+            </button>
+
+            <button class="control-btn btn-forward" 
+              onmousedown="iniciarMovimiento('Adelante')" 
+              onmouseup="detenerMovimiento()"
+              onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Adelante')" 
+              ontouchend="detenerMovimiento()"
+              ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-up"></i>
+              <span>Adelante</span>
+            </button>
+
+            <button class="control-btn btn-curve-fa curve-top-right" 
+              onmousedown="iniciarMovimiento('Curva Derecha Adelante')"
+              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Curva Derecha Adelante')" 
+              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-up rotate-45-right"></i>
+              <span>Curva Der<br>Adelante</span>
+            </button>
+
+            <!-- Fila 2: Izquierda - Stop - Derecha -->
+            <button class="control-btn btn-left" 
+              onmousedown="iniciarMovimiento('Izquierda')" 
+              onmouseup="detenerMovimiento()"
+              onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Izquierda')" 
+              ontouchend="detenerMovimiento()"
+              ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-left"></i>
+              <span>Izquierda</span>
+            </button>
+
+            <button class="control-btn btn-stop" onclick="enviarEventoWS('Detenerse')">
+              <i class="fas fa-stop"></i>
+              <span>Detener</span>
+            </button>
+
+            <button class="control-btn btn-right" 
+              onmousedown="iniciarMovimiento('Derecha')" 
+              onmouseup="detenerMovimiento()"
+              onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Derecha')" 
+              ontouchend="detenerMovimiento()"
+              ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-right"></i>
+              <span>Derecha</span>
+            </button>
+
+            <!-- Fila 3: Curva Izquierda Atrás - Atrás - Curva Derecha Atrás -->
+            <button class="control-btn btn-curve-ba curve-bottom-left" 
+              onmousedown="iniciarMovimiento('Curva Izquierda Atrás')"
+              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Curva Izquierda Atrás')" 
+              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-down rotate-45-right"></i>
+              <span>Curva Izq<br>Atrás</span>
+            </button>
+
+            <button class="control-btn btn-backward" 
+              onmousedown="iniciarMovimiento('Atrás')" 
+              onmouseup="detenerMovimiento()"
+              onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Atrás')" 
+              ontouchend="detenerMovimiento()"
+              ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-down"></i>
+              <span>Atrás</span>
+            </button>
+
+            <button class="control-btn btn-curve-ba curve-bottom-right" 
+              onmousedown="iniciarMovimiento('Curva Derecha Atrás')"
+              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+              ontouchstart="iniciarMovimiento('Curva Derecha Atrás')" 
+              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+              <i class="fas fa-arrow-down rotate-45-left"></i>
+              <span>Curva Der<br>Atrás</span>
+            </button>
           </div>
 
-          <!-- Últimos Eventos -->
-          <div class="col-md-6">
-            <div class="status-card h-100">
-              <h4><i class="fas fa-history me-2"></i>Eventos Recientes</h4>
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small">Actividad del carro</span>
-                <span class="badge bg-primary" id="event-count-badge">0</span>
-              </div>
-              <div id="listaEventos" class="events-list">
-                <div class="text-center text-muted py-3">
-                  <i class="fas fa-clock fa-lg mb-2"></i>
-                  <p class="small">Cargando eventos...</p>
-                </div>
-              </div>
+          <!-- Botón Demo debajo del pad de control -->
+          <div class="demo-section mt-4">
+            <button class="control-btn btn-dance demo-btn-large" onclick="enviarEventoWS('Demo')">
+              <i class="fas fa-music me-2"></i>
+              <span>Modo Demo</span>
+            </button>
+          </div>
+
+          <div class="mt-3">
+            <small class="text-muted" id="movimiento-activo"></small>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENTOS RECIENTES - DERECHA -->
+      <div class="col-lg-3">
+        <div class="status-card h-100 events-card">
+          <h4><i class="fas fa-history me-2"></i>Eventos Recientes</h4>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted small">Actividad del carro</span>
+            <span class="badge bg-primary" id="event-count-badge">0</span>
+          </div>
+          <div id="listaEventos" class="events-list">
+            <div class="text-center text-muted py-3">
+              <i class="fas fa-clock fa-lg mb-2"></i>
+              <p class="small">Cargando eventos...</p>
             </div>
           </div>
         </div>
@@ -240,8 +270,6 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/main.js"></script>
-
 </body>
 </html>

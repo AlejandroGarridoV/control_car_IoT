@@ -34,6 +34,12 @@ body {
   color: var(--text-secondary) !important;
 }
 
+/* Fila principal de controles */
+.main-controls-row {
+  min-height: 600px;
+  align-items: stretch;
+}
+
 .control-panel {
   background: var(--bg-card);
   backdrop-filter: blur(10px);
@@ -41,23 +47,29 @@ body {
   border: 1px solid var(--border-light);
   padding: 1.5rem;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.control-grid {
+/* NUEVA CUADRÍCULA INTEGRADA CON CURVAS */
+.control-grid-integrated {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 12px;
-  max-width: 350px;
+  gap: 8px;
+  max-width: 400px;
   margin: 0 auto;
+  position: relative;
 }
 
 .control-btn {
-  height: 70px;
+  height: 80px;
   border-radius: 12px;
   border: none;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -68,6 +80,8 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  text-align: center;
+  padding: 8px 4px;
 }
 
 .control-btn::before {
@@ -102,10 +116,16 @@ body {
 }
 
 .control-btn i {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   margin-bottom: 4px;
 }
 
+.control-btn span {
+  line-height: 1.2;
+  font-size: 0.75rem;
+}
+
+/* Botones principales */
 .btn-forward { 
   grid-column: 2; 
   grid-row: 1;
@@ -137,10 +157,99 @@ body {
   background: var(--danger);
 }
 
-.btn-dance { 
-  grid-column: 1; 
+/* Botones de curva en las esquinas */
+.btn-curve-fa {
+  background: #0ea5e9; /* Azul claro */
+}
+
+.btn-curve-ba {
+  background: #a855f7; /* Morado */
+}
+
+.curve-top-left {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.curve-top-right {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.curve-bottom-left {
+  grid-column: 1;
   grid-row: 3;
+}
+
+.curve-bottom-right {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+/* Sección del botón Demo */
+.demo-section {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.demo-btn-large {
+  width: 200px;
+  height: 60px;
   background: #8b5cf6;
+  border-radius: 12px;
+  border: none;
+  font-weight: bold;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: var(--lighter);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-btn-large::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(255,255,255,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.demo-btn-large:hover::before {
+  opacity: 1;
+}
+
+.demo-btn-large:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  background: #7c3aed;
+}
+
+.demo-btn-large:active {
+  transform: translateY(-1px);
+}
+
+.demo-btn-large i {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+/* Rotaciones para íconos de curva */
+.rotate-45-left {
+  transform: rotate(-45deg);
+}
+
+.rotate-45-right {
+  transform: rotate(45deg);
 }
 
 .status-card {
@@ -149,9 +258,11 @@ body {
   border-radius: 12px;
   border: 1px solid var(--border-light);
   padding: 1.25rem;
-  margin-bottom: 1rem;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .status-card:hover {
@@ -173,6 +284,22 @@ body {
   opacity: 0.9;
 }
 
+/* Tarjetas laterales específicas */
+.sequences-card,
+.events-card {
+  min-height: 600px;
+}
+
+.sequences-card .sequence-list {
+  flex: 1;
+  min-height: 120px;
+}
+
+.events-card .events-list {
+  flex: 1;
+  min-height: 200px;
+}
+
 .status-indicator {
   display: inline-block;
   width: 10px;
@@ -190,8 +317,8 @@ body {
 .status-6 { background: var(--danger); }
 
 .events-list {
-  max-height: 200px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .event-item {
@@ -269,27 +396,73 @@ footer {
 }
 
 /* Responsive */
+@media (max-width: 992px) {
+  .main-controls-row {
+    min-height: auto;
+  }
+  
+  .control-grid-integrated {
+    max-width: 350px;
+    gap: 6px;
+  }
+  
+  .control-btn {
+    height: 70px;
+    font-size: 0.8rem;
+  }
+  
+  .control-btn i {
+    font-size: 1.2rem;
+  }
+  
+  .control-btn span {
+    font-size: 0.7rem;
+  }
+  
+  .demo-btn-large {
+    width: 180px;
+    height: 55px;
+    font-size: 0.9rem;
+  }
+  
+  .control-panel {
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  .status-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .sequences-card,
+  .events-card {
+    min-height: auto;
+  }
+}
+
 @media (max-width: 768px) {
-  .control-grid {
-    max-width: 280px;
-    gap: 10px;
+  .control-grid-integrated {
+    max-width: 300px;
   }
   
   .control-btn {
     height: 60px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
   
   .control-btn i {
     font-size: 1.1rem;
   }
   
-  .control-panel {
-    padding: 1.25rem;
+  .control-btn span {
+    font-size: 0.65rem;
   }
   
-  .status-card {
-    padding: 1rem;
+  .demo-btn-large {
+    width: 160px;
+    height: 50px;
+    font-size: 0.85rem;
   }
 }
 
@@ -318,6 +491,7 @@ footer {
   gap: 8px;
   margin-bottom: 1rem;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .sequence-btn {
@@ -376,10 +550,9 @@ footer {
   background: var(--bg-card);
   border-radius: 8px;
   padding: 12px;
-  min-height: 120px;
-  max-height: 150px;
   overflow-y: auto;
   border: 1px solid var(--border-light);
+  flex: 1;
 }
 
 .sequence-item {
@@ -630,29 +803,6 @@ footer {
   filter: brightness(1.1);
 }
 
-/* Alturas fijas para consistencia */
-.h-100 {
-  height: 100% !important;
-}
-
-/* Ajustes para pantallas grandes */
-@media (min-width: 1200px) {
-  .container-fluid {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-  
-  .control-grid {
-    max-width: 380px;
-  }
-  
-  .control-btn {
-    height: 75px;
-  }
-}
-
-/* Agregar al final del archivo styles.css */
-
 /* Efectos para botones presionados */
 .control-btn.presionado {
     transform: scale(0.90) !important;
@@ -696,3 +846,155 @@ footer {
     }
 }
 
+/* ============================================================= */
+/* 🆕 ESTILOS PARA SECUENCIAS GUARDADAS */
+/* ============================================================= */
+
+/* Estilos para secuencias guardadas */
+.saved-sequences-list {
+  max-height: 200px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.saved-sequence-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.saved-sequence-item:hover {
+  background: var(--bg-card-hover);
+  transform: translateX(3px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sequence-info {
+  flex: 1;
+}
+
+.sequence-info strong {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sequence-meta small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.sequence-preview {
+  margin-top: 6px;
+}
+
+.movement-tag {
+  display: inline-block;
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--primary);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+
+.btn-delete-sequence {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.btn-delete-sequence:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
+/* Botón guardar */
+.btn-save {
+  background: #8b5cf6 !important; /* Color morado */
+}
+
+/* Estados de secuencia activa */
+#secuencia-activa-info {
+  color: var(--success);
+  font-weight: 500;
+}
+
+/* Scrollbar para lista de secuencias guardadas */
+.saved-sequences-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.saved-sequences-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.saved-sequences-list::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 8px;
+}
+
+.saved-sequences-list::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .saved-sequence-item {
+    padding: 10px;
+  }
+  
+  .sequence-preview {
+    display: none; /* Ocultar preview en móviles para ahorrar espacio */
+  }
+}
+
+/* Mejoras de distribución */
+.row {
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+}
+
+.col-md-6, .col-lg-6, .col-xl-5, .col-xl-7, .col-12, .col-lg-3 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Mejorar espaciado en móviles */
+@media (max-width: 576px) {
+  .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  .control-panel {
+    margin-bottom: 1rem;
+  }
+  
+  .status-card {
+    margin-bottom: 0.75rem;
+  }
+  
+  .sequence-actions {
+    gap: 4px;
+  }
+  
+  .sequence-btn {
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+}
