@@ -1552,3 +1552,124 @@ footer {
     transform: translateX(5px);
     border-color: var(--primary);
 }
+
+/* ============================================================= */
+/* 🆕 ESTILOS PARA GIROS AVANZADOS */
+/* ============================================================= */
+
+.giros-avanzados {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.giros-avanzados .control-btn {
+  width: 90px;
+  height: 70px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+  color: white;
+  cursor: pointer;
+  text-align: center;
+}
+
+.giros-avanzados .control-btn i {
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+
+.giros-avanzados .control-btn span {
+  line-height: 1.2;
+}
+
+/* Colores específicos para los botones de giro */
+.btn-giro-90-left {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-giro-90-left:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-giro-180-left {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.3);
+}
+
+.btn-giro-180-left:hover {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(249, 115, 22, 0.4);
+}
+
+.btn-giro-180-right {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-giro-180-right:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-giro-90-right {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+}
+
+.btn-giro-90-right:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(139, 92, 246, 0.4);
+}
+
+/* Efectos de presión */
+.giros-avanzados .control-btn:active {
+  transform: scale(0.95);
+}
+
+/* Responsive para giros avanzados */
+@media (max-width: 768px) {
+  .giros-avanzados .control-btn {
+    width: 80px;
+    height: 65px;
+    font-size: 0.7rem;
+  }
+  
+  .giros-avanzados .control-btn i {
+    font-size: 1.1rem;
+  }
+  
+  .giros-avanzados {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  .giros-avanzados {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .giros-avanzados .control-btn {
+    width: 75px;
+    height: 60px;
+    font-size: 0.65rem;
+  }
+  
+  .giros-avanzados .control-btn i {
+    font-size: 1rem;
+  }
+}

@@ -113,115 +113,146 @@
       </div>
 
       <!-- CONTROLES PRINCIPALES - CENTRO -->
-      <div class="col-lg-6">
-        <div class="control-panel text-center">
-          <h2 class="mb-4"><i class="fas fa-gamepad me-2"></i>Control Principal</h2>
-          <p class="text-muted mb-3 small">Mantén presionado para mover, suelta para detener</p>
+<div class="col-lg-6">
+  <div class="control-panel text-center">
+    <h2 class="mb-4"><i class="fas fa-gamepad me-2"></i>Control Principal</h2>
+    <p class="text-muted mb-3 small">Mantén presionado para mover, suelta para detener</p>
 
-          <!-- Cuadrícula principal con curvas integradas -->
-          <div class="control-grid-integrated">
-            <!-- Fila 1: Curva Izquierda Adelante - Adelante - Curva Derecha Adelante -->
-            <button class="control-btn btn-curve-fa curve-top-left" 
-              onmousedown="iniciarMovimiento('Curva Izquierda Adelante')"
-              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Curva Izquierda Adelante')" 
-              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-up rotate-45-left"></i>
-              <span>Curva Izq<br>Adelante</span>
-            </button>
+    <!-- Cuadrícula principal con curvas integradas -->
+    <div class="control-grid-integrated">
+      <!-- Tu cuadrícula actual aquí (sin cambios) -->
+      <!-- Fila 1: Curva Izquierda Adelante - Adelante - Curva Derecha Adelante -->
+      <button class="control-btn btn-curve-fa curve-top-left" 
+        onmousedown="iniciarMovimiento('Curva Izquierda Adelante')"
+        onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Curva Izquierda Adelante')" 
+        ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-up rotate-45-left"></i>
+        <span>Curva Izq<br>Adelante</span>
+      </button>
 
-            <button class="control-btn btn-forward" 
-              onmousedown="iniciarMovimiento('Adelante')" 
-              onmouseup="detenerMovimiento()"
-              onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Adelante')" 
-              ontouchend="detenerMovimiento()"
-              ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-up"></i>
-              <span>Adelante</span>
-            </button>
+      <button class="control-btn btn-forward" 
+        onmousedown="iniciarMovimiento('Adelante')" 
+        onmouseup="detenerMovimiento()"
+        onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Adelante')" 
+        ontouchend="detenerMovimiento()"
+        ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-up"></i>
+        <span>Adelante</span>
+      </button>
 
-            <button class="control-btn btn-curve-fa curve-top-right" 
-              onmousedown="iniciarMovimiento('Curva Derecha Adelante')"
-              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Curva Derecha Adelante')" 
-              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-up rotate-45-right"></i>
-              <span>Curva Der<br>Adelante</span>
-            </button>
+      <button class="control-btn btn-curve-fa curve-top-right" 
+        onmousedown="iniciarMovimiento('Curva Derecha Adelante')"
+        onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Curva Derecha Adelante')" 
+        ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-up rotate-45-right"></i>
+        <span>Curva Der<br>Adelante</span>
+      </button>
 
-            <!-- Fila 2: Izquierda - Stop - Derecha -->
-            <button class="control-btn btn-left" 
-              onmousedown="iniciarMovimiento('Izquierda')" 
-              onmouseup="detenerMovimiento()"
-              onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Izquierda')" 
-              ontouchend="detenerMovimiento()"
-              ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-left"></i>
-              <span>Izquierda</span>
-            </button>
+      <!-- Fila 2: Izquierda - Stop - Derecha -->
+      <button class="control-btn btn-left" 
+        onmousedown="iniciarMovimiento('Izquierda')" 
+        onmouseup="detenerMovimiento()"
+        onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Izquierda')" 
+        ontouchend="detenerMovimiento()"
+        ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-left"></i>
+        <span>Izquierda</span>
+      </button>
 
-            <button class="control-btn btn-stop" onclick="enviarEventoWS('Detenerse')">
-              <i class="fas fa-stop"></i>
-              <span>Detener</span>
-            </button>
+      <button class="control-btn btn-stop" onclick="enviarEventoWS('Detenerse')">
+        <i class="fas fa-stop"></i>
+        <span>Detener</span>
+      </button>
 
-            <button class="control-btn btn-right" 
-              onmousedown="iniciarMovimiento('Derecha')" 
-              onmouseup="detenerMovimiento()"
-              onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Derecha')" 
-              ontouchend="detenerMovimiento()"
-              ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-right"></i>
-              <span>Derecha</span>
-            </button>
+      <button class="control-btn btn-right" 
+        onmousedown="iniciarMovimiento('Derecha')" 
+        onmouseup="detenerMovimiento()"
+        onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Derecha')" 
+        ontouchend="detenerMovimiento()"
+        ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-right"></i>
+        <span>Derecha</span>
+      </button>
 
-            <!-- Fila 3: Curva Izquierda Atrás - Atrás - Curva Derecha Atrás -->
-            <button class="control-btn btn-curve-ba curve-bottom-left" 
-              onmousedown="iniciarMovimiento('Curva Izquierda Atrás')"
-              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Curva Izquierda Atrás')" 
-              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-down rotate-45-right"></i>
-              <span>Curva Izq<br>Atrás</span>
-            </button>
+      <!-- Fila 3: Curva Izquierda Atrás - Atrás - Curva Derecha Atrás -->
+      <button class="control-btn btn-curve-ba curve-bottom-left" 
+        onmousedown="iniciarMovimiento('Curva Izquierda Atrás')"
+        onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Curva Izquierda Atrás')" 
+        ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-down rotate-45-right"></i>
+        <span>Curva Izq<br>Atrás</span>
+      </button>
 
-            <button class="control-btn btn-backward" 
-              onmousedown="iniciarMovimiento('Atrás')" 
-              onmouseup="detenerMovimiento()"
-              onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Atrás')" 
-              ontouchend="detenerMovimiento()"
-              ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-down"></i>
-              <span>Atrás</span>
-            </button>
+      <button class="control-btn btn-backward" 
+        onmousedown="iniciarMovimiento('Atrás')" 
+        onmouseup="detenerMovimiento()"
+        onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Atrás')" 
+        ontouchend="detenerMovimiento()"
+        ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-down"></i>
+        <span>Atrás</span>
+      </button>
 
-            <button class="control-btn btn-curve-ba curve-bottom-right" 
-              onmousedown="iniciarMovimiento('Curva Derecha Atrás')"
-              onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
-              ontouchstart="iniciarMovimiento('Curva Derecha Atrás')" 
-              ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
-              <i class="fas fa-arrow-down rotate-45-left"></i>
-              <span>Curva Der<br>Atrás</span>
-            </button>
-          </div>
+      <button class="control-btn btn-curve-ba curve-bottom-right" 
+        onmousedown="iniciarMovimiento('Curva Derecha Atrás')"
+        onmouseup="detenerMovimiento()" onmouseleave="detenerMovimiento()"
+        ontouchstart="iniciarMovimiento('Curva Derecha Atrás')" 
+        ontouchend="detenerMovimiento()" ontouchcancel="detenerMovimiento()">
+        <i class="fas fa-arrow-down rotate-45-left"></i>
+        <span>Curva Der<br>Atrás</span>
+      </button>
+    </div>
 
-          <!-- Botón Demo debajo del pad de control -->
-          <div class="demo-section mt-4">
-            <button class="control-btn btn-dance demo-btn-large" onclick="enviarEventoWS('Demo')">
-              <i class="fas fa-music me-2"></i>
-              <span>Modo Demo</span>
-            </button>
-          </div>
-
-          <div class="mt-3">
-            <small class="text-muted" id="movimiento-activo"></small>
-          </div>
+    <!-- 🆕 NUEVA FILA PARA GIROS DE 90° Y 180° -->
+    <div class="giros-avanzados mt-4">
+      <div class="row justify-content-center">
+        <div class="col-auto">
+          <button class="control-btn btn-giro-90-left" onclick="enviarEventoWS('GirarIzquierda90')">
+            <i class="fas fa-undo"></i>
+            <span>Giro 90°<br>Izquierda</span>
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="control-btn btn-giro-180-left" onclick="enviarEventoWS('GirarIzquierda180')">
+            <i class="fas fa-undo fa-rotate-270"></i>
+            <span>Giro 180°<br>Izquierda</span>
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="control-btn btn-giro-180-right" onclick="enviarEventoWS('GirarDerecha180')">
+            <i class="fas fa-redo fa-rotate-90"></i>
+            <span>Giro 180°<br>Derecha</span>
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="control-btn btn-giro-90-right" onclick="enviarEventoWS('GirarDerecha90')">
+            <i class="fas fa-redo"></i>
+            <span>Giro 90°<br>Derecha</span>
+          </button>
         </div>
       </div>
+    </div>
+
+    <!-- Botón Demo debajo del pad de control -->
+    <div class="demo-section mt-4">
+      <button class="control-btn btn-dance demo-btn-large" onclick="enviarEventoWS('Demo')">
+        <i class="fas fa-music me-2"></i>
+        <span>Modo Demo</span>
+      </button>
+    </div>
+
+    <div class="mt-3">
+      <small class="text-muted" id="movimiento-activo"></small>
+    </div>
+  </div>
+</div>
 
       <!-- EVENTOS RECIENTES - DERECHA -->
       <div class="col-lg-3">
