@@ -1210,3 +1210,345 @@ footer {
 .controller-tooltip.show {
     opacity: 1;
 }
+
+/* ============================================================= */
+/* 🆕 ESTILOS PARA OBSTÁCULOS Y SECUENCIAS BD */
+/* ============================================================= */
+
+/* Estilos para lista de obstáculos */
+.obstacles-list {
+  max-height: 300px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.obstacle-item {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border-left: 4px solid #6c757d;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-light);
+}
+
+.obstacle-item.high-priority {
+  border-left-color: var(--danger);
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.obstacle-item.medium-priority {
+  border-left-color: var(--warning);
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.obstacle-item.low-priority {
+  border-left-color: var(--success);
+  background: rgba(25, 135, 84, 0.1);
+}
+
+.obstacle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.obstacle-location {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.obstacle-distance {
+  font-weight: bold;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.obstacle-distance.text-danger {
+  color: var(--danger) !important;
+}
+
+.obstacle-distance.text-warning {
+  color: var(--warning) !important;
+}
+
+.obstacle-distance.text-success {
+  color: var(--success) !important;
+}
+
+.obstacle-action {
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.obstacle-action i {
+  color: var(--warning);
+}
+
+.obstacle-time {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Scrollbar para obstáculos */
+.obstacles-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.obstacles-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  margin: 2px 0;
+}
+
+.obstacles-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--warning), #d97706);
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.obstacles-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #d97706, #b45309);
+}
+
+/* Mejoras para secuencias guardadas desde BD */
+.saved-sequence-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.saved-sequence-item:hover {
+  transform: translateX(5px);
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.saved-sequence-item.from-bd {
+  border-left: 3px solid var(--primary);
+}
+
+.saved-sequence-item.from-local {
+  border-left: 3px solid var(--success);
+}
+
+.sequence-preview {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.movement-tag {
+  background: rgba(13, 110, 253, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7em;
+  border: 1px solid rgba(13, 110, 253, 0.3);
+  color: var(--text-primary);
+}
+
+.sequence-source {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.6rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--primary);
+  color: white;
+}
+
+.sequence-source.local {
+  background: var(--success);
+}
+
+/* Estados de carga */
+.loading-obstacles {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.loading-obstacles::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+/* Botón de actualizar obstáculos */
+.btn-refresh-obstacles {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.btn-refresh-obstacles:hover {
+  background: var(--primary);
+  color: white;
+  transform: rotate(180deg);
+}
+
+.btn-refresh-obstacles.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Indicadores de estado */
+.obstacle-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.status-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-danger { background: var(--danger); }
+.status-warning { background: var(--warning); }
+.status-success { background: var(--success); }
+
+/* Responsive para obstáculos */
+@media (max-width: 768px) {
+  .obstacle-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  
+  .obstacle-distance {
+    align-self: flex-end;
+  }
+  
+  .obstacle-time {
+    text-align: left;
+  }
+  
+  .sequence-preview {
+    display: none;
+  }
+}
+
+/* Animaciones para nuevos obstáculos */
+@keyframes newObstacle {
+  0% {
+    background: rgba(255, 193, 7, 0.3);
+    transform: scale(0.95);
+  }
+  100% {
+    background: inherit;
+    transform: scale(1);
+  }
+}
+
+.obstacle-item.new {
+  animation: newObstacle 0.5s ease;
+}
+
+/* Badge de contador de obstáculos */
+#obstacle-count {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+/* Estilos para el estado vacío */
+.obstacles-list:empty::before {
+  content: 'No se han detectado obstáculos';
+  display: block;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Mejora para el botón de guardar secuencia */
+#btn-guardar-secuencia.saving {
+  background: var(--warning) !important;
+  pointer-events: none;
+}
+
+#btn-guardar-secuencia.saved {
+  background: var(--success) !important;
+}
+
+/* Mejoras para secuencias */
+.sequence-desc {
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 2px 0;
+}
+
+.sequence-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-remove-movement {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.btn-remove-movement:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.sequence-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card-hover);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 4px 0;
+    border: 1px solid var(--border-light);
+}
+
+.saved-sequence-item {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-light);
+}
+
+.saved-sequence-item:hover {
+    transform: translateX(5px);
+    border-color: var(--primary);
+}
