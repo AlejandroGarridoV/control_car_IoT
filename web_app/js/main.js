@@ -9,6 +9,15 @@ let lastMovimiento = "";
 let secuencia = [];
 let secuenciasGuardadas = [];
 
+// --- VARIABLES DE RECONEXIÓN ---
+let reconnectDelay = 1000;
+let maxReconnectDelay = 30000;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 50;
+
+// --- VARIADOR DE VELOCIDAD ---
+let velocidadActual = 250; // Velocidad por defecto (máxima)
+
 // --- ELEMENTOS DOM ---
 let movimientoActivo, listaEventos;
 
@@ -18,7 +27,7 @@ let movimientoActivo, listaEventos;
 function iniciarMovimiento(tipo) {
   lastMovimiento = tipo;
   if (movimientoActivo) {
-    movimientoActivo.innerText = `Moviendo: ${tipo}`;
+    movimientoActivo.innerText = `Moviendo: ${tipo} (Vel: ${velocidadActual})`;
     movimientoActivo.classList.add('activo');
   }
   enviarEventoWS(tipo);
@@ -36,37 +45,154 @@ function detenerMovimiento() {
 }
 
 // =============================================================
-// 📡 ENVIAR EVENTOS POR WEBSOCKET
+// 🌐 CONEXIÓN WEBSOCKET - ÚNICA VERSIÓN
 // =============================================================
+function conectarWebSocket() {
+  // Verificar si ya estamos conectando/conectados
+  if (ws) {
+    if (ws.readyState === WebSocket.CONNECTING) {
+      console.log("⚠️ Ya se está conectando al WebSocket...");
+      return;
+    }
+    if (ws.readyState === WebSocket.OPEN) {
+      console.log("✅ Ya conectado al WebSocket");
+      return;
+    }
+  }
+  
+  console.log(`🔌 Conectando al WebSocket... (Intento ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+  
+  try {
+    // Cerrar conexión existente si hay una
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      console.log("✅ Conectado al WebSocket!");
+      reconnectDelay = 1000; // Resetear delay
+      reconnectAttempts = 0;
+      
+      const connectionStatus = document.getElementById("connection-status");
+      if (connectionStatus) {
+        connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-success"></i> Conectado';
+      }
+      
+      // Enviar identificación inmediatamente
+      enviarIdentificacion();
+      
+      // Enviar la velocidad actual al conectar
+      setTimeout(() => {
+        enviarVelocidadAlCarro();
+      }, 500);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("📥 Mensaje WebSocket recibido:", data);
+        actualizarEstado(data);
+      } catch (err) {
+        console.warn("⚠️ Mensaje no JSON:", event.data);
+      }
+    };
+
+    ws.onclose = (event) => {
+      console.warn(`❌ Desconectado del WebSocket. Código: ${event.code}, Razón: ${event.reason || 'Sin razón'}`);
+      
+      const connectionStatus = document.getElementById("connection-status");
+      if (connectionStatus) {
+        connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
+      }
+      
+      // Solo reconectar si no fue un cierre intencional y no superamos el límite
+      if (event.code !== 1000 && event.code !== 1001 && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        
+        // Backoff exponencial con jitter
+        reconnectDelay = Math.min(maxReconnectDelay, reconnectDelay * 1.5 + Math.random() * 1000);
+        
+        console.log(`⏳ Reconectando en ${Math.round(reconnectDelay/1000)}s (intento ${reconnectAttempts})`);
+        
+        setTimeout(() => {
+          conectarWebSocket();
+        }, reconnectDelay);
+      } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        console.error("❌ Máximo de intentos de reconexión alcanzado");
+        alert("⚠️ No se pudo conectar con el servidor. Por favor, recarga la página.");
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("⚠️ Error en WebSocket:", error);
+      // No necesitamos hacer nada aquí, onclose se llamará después
+    };
+  } catch (error) {
+    console.error("❌ Error al crear WebSocket:", error);
+    
+    // Intentar reconectar después de 5 segundos
+    setTimeout(() => {
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        conectarWebSocket();
+      }
+    }, 5000);
+  }
+}
+
+// Función para enviar identificación al conectar
+function enviarIdentificacion() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  
+  const identificacion = {
+    tipo: "identificacion",
+    dispositivo: "carro_iot_frontend",
+    version: "1.0",
+    timestamp: new Date().toISOString()
+  };
+  
+  try {
+    ws.send(JSON.stringify(identificacion));
+    console.log("📤 Identificación enviada:", identificacion);
+  } catch (err) {
+    console.error("❌ Error enviando identificación:", err);
+  }
+}
+
+// Función para enviar eventos por WebSocket (CON VELOCIDAD)
 function enviarEventoWS(tipo_evento) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
-    console.warn("⚠️ WebSocket no conectado, intentando reconectar...");
-    conectarWebSocket();
-    setTimeout(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        enviarEventoWS(tipo_evento);
-      }
-    }, 1000);
+    console.warn("⚠️ WebSocket no conectado, evento no enviado");
+    
+    // Mostrar alerta visual
+    mostrarNotificacionError("No hay conexión con el servidor");
+    
+    // No intentamos reconectar aquí porque ya hay un sistema de reconexión
     return;
   }
 
   const data = {
     id_dispositivo: 1,
     tipo_evento: tipo_evento,
-    detalle: `Movimiento: ${tipo_evento}`,
+    detalle: `Movimiento: ${tipo_evento} | Velocidad: ${velocidadActual}`,
+    velocidad: velocidadActual,
     fecha_hora: new Date().toISOString(),
   };
 
   try {
     ws.send(JSON.stringify(data));
-    console.log("📤 Evento enviado por WebSocket:", data);
+    console.log(`📤 Evento enviado: ${tipo_evento} (Vel: ${velocidadActual})`);
   } catch (err) {
     console.error("❌ Error al enviar evento por WebSocket:", err);
+    mostrarNotificacionError("Error al enviar comando");
   }
 }
 
 // =============================================================
-// 🧩 SISTEMA DE SECUENCIAS - COMPLETO Y FUNCIONAL
+// 🧩 SISTEMA DE SECUENCIAS
 // =============================================================
 
 // Agregar movimiento a la secuencia actual
@@ -74,6 +200,7 @@ function agregarMovimiento(tipo) {
   secuencia.push(tipo);
   actualizarSecuenciaUI();
   console.log(`➕ Movimiento agregado: ${tipo}. Secuencia:`, secuencia);
+  mostrarNotificacion(`Movimiento agregado: ${tipo}`, "success");
 }
 
 // Agregar movimiento aleatorio
@@ -81,7 +208,8 @@ function agregarMovimientoPersonalizado() {
   const movimientos = [
     "Adelante", "Atrás", "Izquierda", "Derecha", "Demo",
     "Curva Derecha Adelante", "Curva Izquierda Adelante",
-    "Curva Izquierda Atrás", "Curva Derecha Atrás"
+    "Curva Izquierda Atrás", "Curva Derecha Atrás",
+    "GirarIzquierda90", "GirarDerecha90", "GirarIzquierda180", "GirarDerecha180"
   ];
   const random = movimientos[Math.floor(Math.random() * movimientos.length)];
   agregarMovimiento(random);
@@ -94,13 +222,14 @@ function removerMovimiento(index) {
     secuencia.splice(index, 1);
     actualizarSecuenciaUI();
     console.log(`➖ Movimiento eliminado: ${movimientoEliminado}`);
+    mostrarNotificacion(`Movimiento eliminado`, "warning");
   }
 }
 
 // Ejecutar secuencia actual
 function ejecutarSecuencia() {
   if (secuencia.length === 0) {
-    alert('❌ No hay movimientos en la secuencia');
+    mostrarNotificacion('No hay movimientos en la secuencia', "warning");
     return;
   }
   
@@ -138,6 +267,7 @@ function ejecutarSecuencia() {
           if (secuenciaActivaInfo) {
             secuenciaActivaInfo.innerHTML = '<small>Secuencia completada ✅</small>';
           }
+          mostrarNotificacion('Secuencia completada correctamente', "success");
           
           setTimeout(() => {
             if (secuenciaActivaInfo) secuenciaActivaInfo.innerHTML = '';
@@ -153,13 +283,14 @@ function ejecutarSecuencia() {
 // Limpiar secuencia actual
 function limpiarSecuencia() {
   if (secuencia.length === 0) {
-    alert('ℹ️ La secuencia ya está vacía');
+    mostrarNotificacion('La secuencia ya está vacía', "info");
     return;
   }
   
   secuencia = [];
   actualizarSecuenciaUI();
   console.log('🗑️ Secuencia limpiada');
+  mostrarNotificacion('Secuencia limpiada', "success");
 }
 
 // Actualizar interfaz de secuencia actual
@@ -189,7 +320,7 @@ function actualizarSecuenciaUI() {
 }
 
 // =============================================================
-// 💾 SISTEMA DE SECUENCIAS GUARDADAS - COMPLETAMENTE FUNCIONAL
+// 💾 SISTEMA DE SECUENCIAS GUARDADAS
 // =============================================================
 
 // Cargar secuencias al iniciar
@@ -202,7 +333,9 @@ async function cargarSecuencias() {
 async function cargarSecuenciasDesdeBD() {
   try {
     console.log("🌐 Intentando cargar secuencias desde BD...");
-    const response = await fetch(`${SERVER_URL}/api/secuencias`);
+    const response = await fetch(`${SERVER_URL}/api/secuencias`, {
+      signal: AbortSignal.timeout(10000) // Timeout de 10 segundos
+    });
     
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status}`);
@@ -241,6 +374,7 @@ async function cargarSecuenciasDesdeBD() {
       
       secuenciasGuardadas = secuenciasBD;
       actualizarListaSecuenciasGuardadas();
+      mostrarNotificacion(`${secuenciasBD.length} secuencias cargadas`, "success");
       
     } else {
       console.warn('⚠️ Respuesta inesperada de BD:', result);
@@ -270,16 +404,16 @@ function cargarSecuenciasLocales() {
   }
 }
 
-// Guardar secuencia actual - VERSIÓN CORREGIDA
+// Guardar secuencia actual
 async function guardarSecuencia() {
   if (secuencia.length === 0) {
-    alert('❌ No hay movimientos en la secuencia para guardar');
+    mostrarNotificacion('No hay movimientos en la secuencia para guardar', "warning");
     return;
   }
 
   const nombre = prompt('📝 Nombre para esta secuencia:');
   if (!nombre || nombre.trim() === '') {
-    alert('❌ El nombre no puede estar vacío');
+    mostrarNotificacion('El nombre no puede estar vacío', "warning");
     return;
   }
 
@@ -303,7 +437,7 @@ async function guardarSecuencia() {
 
     // Guardar en la base de datos con timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const response = await fetch(`${SERVER_URL}/api/secuencias`, {
       method: 'POST',
@@ -326,7 +460,6 @@ async function guardarSecuencia() {
         const errorResult = await response.json();
         errorMessage = errorResult.mensaje || errorMessage;
       } catch (e) {
-        // Si no se puede parsear la respuesta de error
         errorMessage = await response.text();
       }
       throw new Error(errorMessage);
@@ -336,7 +469,6 @@ async function guardarSecuencia() {
     console.log("📡 Respuesta del servidor:", result);
 
     if (result.status === 'ok') {
-      // Éxito - proceder como antes
       const nuevoId = result.secuencia_id;
       
       const nuevaSecuencia = {
@@ -367,7 +499,7 @@ async function guardarSecuencia() {
         }
       }, 2000);
       
-      alert(`✅ Secuencia "${nombre}" guardada correctamente`);
+      mostrarNotificacion(`Secuencia "${nombre}" guardada correctamente`, "success");
       
     } else {
       throw new Error(result.mensaje || 'Error del servidor al guardar');
@@ -376,7 +508,6 @@ async function guardarSecuencia() {
   } catch (error) {
     console.error('❌ Error al guardar en BD:', error);
     
-    // Mejor mensaje de error
     let errorMessage = 'Error desconocido';
     if (error.name === 'AbortError') {
       errorMessage = 'Timeout: El servidor no respondió a tiempo';
@@ -386,13 +517,8 @@ async function guardarSecuencia() {
       errorMessage = error.message;
     }
     
-    alert(`❌ Error al guardar: ${errorMessage}`);
-    
-    // Restaurar botón
-    if (btnGuardar) {
-      btnGuardar.innerHTML = originalText;
-      btnGuardar.disabled = false;
-    }
+    // Intentar guardar localmente
+    guardarSecuenciaLocalmente(nombre, descripcion, btnGuardar, originalText);
   }
 }
 
@@ -426,11 +552,11 @@ function guardarSecuenciaLocalmente(nombre, descripcion, btnGuardar, originalTex
       }
     }, 2000);
     
-    alert('✅ Secuencia guardada localmente (servidor no disponible)');
+    mostrarNotificacion('Secuencia guardada localmente (servidor no disponible)', "info");
     
   } catch (localError) {
     console.error('❌ Error guardando localmente:', localError);
-    alert('❌ Error grave: No se pudo guardar la secuencia');
+    mostrarNotificacion('Error grave: No se pudo guardar la secuencia', "danger");
     
     if (btnGuardar) {
       btnGuardar.innerHTML = originalText;
@@ -461,13 +587,13 @@ function guardarEnLocalStorage() {
   }
 }
 
-// Eliminar secuencia guardada - VERSIÓN CORREGIDA
+// Eliminar secuencia guardada
 async function eliminarSecuenciaGuardada(id, event) {
   if (event) event.stopPropagation();
   
   const secuenciaEncontrada = secuenciasGuardadas.find(s => s.id === id);
   if (!secuenciaEncontrada) {
-    alert('❌ Secuencia no encontrada');
+    mostrarNotificacion('Secuencia no encontrada', "warning");
     return;
   }
   
@@ -510,11 +636,11 @@ async function eliminarSecuenciaGuardada(id, event) {
     actualizarListaSecuenciasGuardadas();
     
     console.log(`🗑️ Secuencia eliminada: ${secuenciaEncontrada.nombre}`);
-    alert('✅ Secuencia eliminada correctamente');
+    mostrarNotificacion('Secuencia eliminada correctamente', "success");
     
   } catch (error) {
     console.error('❌ Error eliminando secuencia:', error);
-    alert(`❌ Error al eliminar: ${error.message}`);
+    mostrarNotificacion(`Error al eliminar: ${error.message}`, "danger");
   }
 }
 
@@ -523,12 +649,12 @@ function ejecutarSecuenciaGuardada(id) {
   const secuenciaEncontrada = secuenciasGuardadas.find(s => s.id === id);
   
   if (!secuenciaEncontrada) {
-    alert('❌ Secuencia no encontrada');
+    mostrarNotificacion('Secuencia no encontrada', "warning");
     return;
   }
   
   if (secuenciaEncontrada.movimientos.length === 0) {
-    alert('❌ Esta secuencia no tiene movimientos');
+    mostrarNotificacion('Esta secuencia no tiene movimientos', "warning");
     return;
   }
   
@@ -566,6 +692,7 @@ function ejecutarSecuenciaGuardada(id) {
           if (secuenciaActivaInfo) {
             secuenciaActivaInfo.innerHTML = '<small>Secuencia completada ✅</small>';
           }
+          mostrarNotificacion(`Secuencia "${secuenciaEncontrada.nombre}" completada`, "success");
           
           setTimeout(() => {
             if (secuenciaActivaInfo) secuenciaActivaInfo.innerHTML = '';
@@ -639,7 +766,7 @@ function actualizarListaSecuenciasGuardadas() {
 // Exportar secuencias
 function exportarSecuencias() {
   if (secuenciasGuardadas.length === 0) {
-    alert('No hay secuencias para exportar');
+    mostrarNotificacion('No hay secuencias para exportar', "warning");
     return;
   }
 
@@ -652,7 +779,7 @@ function exportarSecuencias() {
   link.click();
   
   console.log('📤 Secuencias exportadas:', secuenciasGuardadas.length);
-  alert(`✅ ${secuenciasGuardadas.length} secuencias exportadas`);
+  mostrarNotificacion(`${secuenciasGuardadas.length} secuencias exportadas`, "success");
 }
 
 // Importar secuencias
@@ -680,12 +807,12 @@ function importarSecuencias() {
           secuenciasGuardadas = [...secuenciasGuardadas, ...importedWithNewIds];
           guardarEnLocalStorage();
           actualizarListaSecuenciasGuardadas();
-          alert(`✅ ${imported.length} secuencias importadas correctamente`);
+          mostrarNotificacion(`${imported.length} secuencias importadas correctamente`, "success");
         } else {
-          alert('❌ Formato de archivo inválido');
+          mostrarNotificacion('Formato de archivo inválido', "danger");
         }
       } catch (err) {
-        alert('❌ Error al importar el archivo: ' + err.message);
+        mostrarNotificacion(`Error al importar: ${err.message}`, "danger");
       }
     };
     reader.readAsText(file);
@@ -823,7 +950,7 @@ function getObstaclePriority(distancia) {
 }
 
 // =============================================================
-// 🧠 ACTUALIZAR INTERFAZ - CORREGIDO PARA EVITAR DUPLICADOS
+// 🧠 ACTUALIZAR INTERFAZ
 // =============================================================
 function actualizarEstado(evento) {
   // Verificar si ya existe un evento idéntico reciente para evitar duplicados
@@ -861,103 +988,227 @@ function actualizarEstado(evento) {
 }
 
 // =============================================================
-// 🌐 CONEXIÓN WEBSOCKET - CORREGIDA
+// 🎚️ VARIADOR DE VELOCIDAD - CORREGIDO
 // =============================================================
-function conectarWebSocket() {
-  console.log("🔌 Conectando al WebSocket...");
+
+let velocidadTimeout = null;
+
+// Inicializar el variador de velocidad
+function inicializarVariadorVelocidad() {
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
   
-  try {
-    // Cerrar conexión existente si hay una
-    if (ws) {
-      ws.close();
-    }
-
-    ws = new WebSocket(WS_URL);
-
-    ws.onopen = () => {
-      console.log("✅ Conectado al WebSocket!");
-      const connectionStatus = document.getElementById("connection-status");
-      if (connectionStatus) {
-        connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-success"></i> Conectado';
-      }
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("📥 Mensaje WebSocket recibido:", data);
-        actualizarEstado(data);
-      } catch (err) {
-        console.warn("⚠️ Mensaje no JSON:", event.data);
-      }
-    };
-
-    ws.onclose = (event) => {
-      console.warn("❌ Desconectado del WebSocket:", event.code, event.reason);
-      const connectionStatus = document.getElementById("connection-status");
-      if (connectionStatus) {
-        connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
-      }
+  if (speedSlider && speedValue) {
+    // Establecer velocidad máxima inicial
+    velocidadActual = 250;
+    speedSlider.value = velocidadActual;
+    speedValue.textContent = velocidadActual;
+    actualizarColorVelocidad(velocidadActual);
+    
+    // Actualizar valor visual al mover el slider
+    speedSlider.addEventListener('input', function() {
+      velocidadActual = parseInt(this.value);
+      speedValue.textContent = velocidadActual;
+      actualizarColorVelocidad(velocidadActual);
       
-      // Reconectar después de 3 segundos
-      setTimeout(conectarWebSocket, 3000);
-    };
-
-    ws.onerror = (error) => {
-      console.error("⚠️ Error en WebSocket:", error);
-    };
-  } catch (error) {
-    console.error("❌ Error al crear WebSocket:", error);
+      // Enviar velocidad al carro en tiempo real (con debounce)
+      clearTimeout(velocidadTimeout);
+      velocidadTimeout = setTimeout(() => {
+        enviarVelocidadAlCarro();
+      }, 100); // Enviar después de 100ms sin cambios
+    });
+    
+    console.log("✅ Variador de velocidad inicializado a: " + velocidadActual);
   }
 }
 
-// =============================================================
-// 🚀 INICIALIZACIÓN
-// =============================================================
-function inicializarElementosDOM() {
-  movimientoActivo = document.getElementById("movimiento-activo");
-  listaEventos = document.getElementById("listaEventos");
+// Enviar velocidad al carro - FORMATO CORREGIDO
+function enviarVelocidadAlCarro() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn("⚠️ WebSocket no conectado, velocidad no enviada");
+    // No intentamos reconectar aquí, ya hay un sistema de reconexión
+    return;
+  }
   
-  console.log("✅ Elementos DOM inicializados");
+  // 🚨 FORMATO CORRECTO: usar "comando_velocidad" en lugar de "tipo_evento"
+  const data = {
+    comando_velocidad: "ajustar",
+    valor: velocidadActual,
+    dispositivo_id: 1,
+    timestamp: Date.now()
+  };
+  
+  try {
+    ws.send(JSON.stringify(data));
+    console.log(`📤 Velocidad enviada al carro: ${velocidadActual}`);
+    
+    // Mostrar notificación visual
+    mostrarNotificacionVelocidad(velocidadActual);
+  } catch (err) {
+    console.error("❌ Error al enviar velocidad:", err);
+  }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Inicializando aplicación...");
+// Establecer velocidad específica
+function setSpeed(valor) {
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
   
-  inicializarElementosDOM();
-  conectarWebSocket();
-  cargarSecuencias();
-  cargarObstaculos();
-  actualizarSecuenciaUI();
+  if (speedSlider && speedValue) {
+    // Asegurarse de que esté dentro del rango
+    velocidadActual = Math.max(0, Math.min(250, valor));
+    
+    // Actualizar slider y display
+    speedSlider.value = velocidadActual;
+    speedValue.textContent = velocidadActual;
+    
+    // Actualizar color
+    actualizarColorVelocidad(velocidadActual);
+    
+    // Enviar velocidad al carro inmediatamente
+    enviarVelocidadAlCarro();
+    
+    console.log(`⚡ Velocidad establecida a: ${velocidadActual}`);
+  }
+}
+
+// Actualizar color del badge según la velocidad
+function actualizarColorVelocidad(velocidad) {
+  const speedValue = document.getElementById('speed-value');
+  if (!speedValue) return;
   
-  // Event listeners para botones
-  document.querySelectorAll('.control-btn').forEach(btn => {
-    btn.addEventListener('mousedown', function() {
-      this.classList.add('presionado');
-    });
-    
-    btn.addEventListener('mouseup', function() {
-      this.classList.remove('presionado');
-    });
-    
-    btn.addEventListener('mouseleave', function() {
-      this.classList.remove('presionado');
-    });
-    
-    btn.addEventListener('touchstart', function() {
-      this.classList.add('presionado');
-    });
-    
-    btn.addEventListener('touchend', function() {
-      this.classList.remove('presionado');
-    });
-  });
+  // Limpiar clases anteriores
+  speedValue.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-secondary');
   
-  console.log("✅ Aplicación inicializada correctamente");
+  // Asignar color según velocidad
+  if (velocidad === 0) {
+    speedValue.className = 'badge bg-secondary fs-6';
+  } else if (velocidad <= 50) {
+    speedValue.className = 'badge bg-success fs-6';
+  } else if (velocidad <= 150) {
+    speedValue.className = 'badge bg-info fs-6';
+  } else if (velocidad <= 200) {
+    speedValue.className = 'badge bg-warning fs-6';
+  } else {
+    speedValue.className = 'badge bg-danger fs-6';
+  }
+}
+
+// Mostrar notificación de velocidad cambiada
+function mostrarNotificacionVelocidad(velocidad) {
+  // Crear o actualizar notificación
+  let notif = document.getElementById('speed-notification');
+  if (!notif) {
+    notif = document.createElement('div');
+    notif.id = 'speed-notification';
+    notif.className = 'speed-notification';
+    document.querySelector('.control-panel').appendChild(notif);
+  }
+  
+  let texto = '';
+  let icono = 'fas fa-bolt';
+  
+  if (velocidad === 0) {
+    texto = 'Velocidad: 0 (Detenido)';
+    icono = 'fas fa-stop';
+    notif.className = 'speed-notification speed-stop';
+  } else if (velocidad <= 50) {
+    texto = 'Velocidad: Lenta';
+    icono = 'fas fa-tachometer-alt-slow';
+    notif.className = 'speed-notification speed-slow';
+  } else if (velocidad <= 150) {
+    texto = 'Velocidad: Normal';
+    icono = 'fas fa-tachometer-alt';
+    notif.className = 'speed-notification speed-normal';
+  } else if (velocidad <= 200) {
+    texto = 'Velocidad: Rápida';
+    icono = 'fas fa-tachometer-alt-fast';
+    notif.className = 'speed-notification speed-fast';
+  } else {
+    texto = 'Velocidad: Máxima';
+    icono = 'fas fa-tachometer-alt-max';
+    notif.className = 'speed-notification speed-max';
+  }
+  
+  notif.innerHTML = `<i class="${icono} me-2"></i>${texto} (${velocidad})`;
+  notif.style.display = 'block';
+  notif.style.opacity = '1';
+  
+  // Ocultar después de 1.5 segundos
+  setTimeout(() => {
+    if (notif) {
+      notif.style.opacity = '0';
+      setTimeout(() => {
+        if (notif) notif.style.display = 'none';
+      }, 500);
+    }
+  }, 1500);
+}
+
+// Ajustar velocidad por teclado (atajos)
+document.addEventListener('keydown', function(event) {
+  // Solo procesar si no estamos en un campo de texto
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+  
+  let nuevaVelocidad = velocidadActual;
+  
+  switch(event.key) {
+    case 'ArrowUp':
+    case '+':
+      // Aumentar velocidad en 25
+      nuevaVelocidad = Math.min(250, velocidadActual + 25);
+      event.preventDefault();
+      break;
+      
+    case 'ArrowDown':
+    case '-':
+      // Disminuir velocidad en 25
+      nuevaVelocidad = Math.max(0, velocidadActual - 25);
+      event.preventDefault();
+      break;
+      
+    case '0':
+      // Parar
+      nuevaVelocidad = 0;
+      break;
+      
+    case '1':
+      // 25%
+      nuevaVelocidad = 62;
+      break;
+      
+    case '2':
+      // 50%
+      nuevaVelocidad = 125;
+      break;
+      
+    case '3':
+      // 75%
+      nuevaVelocidad = 188;
+      break;
+      
+    case '4':
+      // 100%
+      nuevaVelocidad = 250;
+      break;
+      
+    case ' ':
+      // Espacio para alternar entre 0 y 250
+      nuevaVelocidad = velocidadActual === 0 ? 250 : 0;
+      event.preventDefault();
+      break;
+      
+    default:
+      return; // Salir si no es una tecla de velocidad
+  }
+  
+  if (nuevaVelocidad !== velocidadActual) {
+    setSpeed(nuevaVelocidad);
+  }
 });
 
 // =============================================================
-// 🎮 CONTROL XBOX (simplificado)
+// 🎮 CONTROL XBOX
 // =============================================================
 class XboxController {
     constructor() {
@@ -965,6 +1216,7 @@ class XboxController {
         this.gamepadIndex = null;
         this.deadZone = 0.3;
         this.animationFrame = null;
+        this.lastStickMovement = null;
         this.init();
     }
 
@@ -1025,7 +1277,7 @@ class XboxController {
                 else if (leftStick.y < -this.deadZone) movimiento = 'Adelante';
             }
 
-            if (movimiento) {
+            if (movimiento && movimiento !== this.lastStickMovement) {
                 iniciarMovimiento(movimiento);
                 this.lastStickMovement = movimiento;
             }
@@ -1051,250 +1303,79 @@ class XboxController {
     }
 }
 
-// Inicializar control Xbox
-let xboxController = new XboxController();
-
-
 // =============================================================
-// 🎚️ VARIADOR DE VELOCIDAD - COMPLETAMENTE FUNCIONAL
+// 🔔 SISTEMA DE NOTIFICACIONES
 // =============================================================
-
-let velocidadActual = 128; // Velocidad por defecto (50% de 250)
-
-// Inicializar el variador de velocidad
-function inicializarVariadorVelocidad() {
-  const speedSlider = document.getElementById('speed-slider');
-  const speedValue = document.getElementById('speed-value');
-  
-  if (speedSlider && speedValue) {
-    // Actualizar valor visual al mover el slider
-    speedSlider.addEventListener('input', function() {
-      velocidadActual = parseInt(this.value);
-      speedValue.textContent = velocidadActual;
-      actualizarColorVelocidad(velocidadActual);
-      
-      // Enviar velocidad al carro automáticamente si está conectado
-      enviarVelocidad();
-    });
-    
-    // También al cambiar (soltar el slider)
-    speedSlider.addEventListener('change', function() {
-      velocidadActual = parseInt(this.value);
-      console.log(`🎚️ Velocidad ajustada a: ${velocidadActual}`);
-    });
-    
-    // Inicializar color
-    actualizarColorVelocidad(velocidadActual);
-  }
-}
-
-// Actualizar color del badge según la velocidad
-function actualizarColorVelocidad(velocidad) {
-  const speedValue = document.getElementById('speed-value');
-  if (!speedValue) return;
-  
-  // Limpiar clases anteriores
-  speedValue.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger');
-  
-  // Asignar color según velocidad
-  if (velocidad === 0) {
-    speedValue.className = 'badge bg-secondary fs-6';
-  } else if (velocidad <= 50) {
-    speedValue.className = 'badge bg-success fs-6';
-  } else if (velocidad <= 150) {
-    speedValue.className = 'badge bg-info fs-6';
-  } else if (velocidad <= 200) {
-    speedValue.className = 'badge bg-warning fs-6';
-  } else {
-    speedValue.className = 'badge bg-danger fs-6';
-  }
-}
-
-// Establecer velocidad específica
-function setSpeed(valor) {
-  const speedSlider = document.getElementById('speed-slider');
-  const speedValue = document.getElementById('speed-value');
-  
-  if (speedSlider && speedValue) {
-    // Asegurarse de que esté dentro del rango
-    velocidadActual = Math.max(0, Math.min(250, valor));
-    
-    // Actualizar slider y display
-    speedSlider.value = velocidadActual;
-    speedValue.textContent = velocidadActual;
-    
-    // Actualizar color
-    actualizarColorVelocidad(velocidadActual);
-    
-    // Enviar velocidad al carro
-    enviarVelocidad();
-    
-    console.log(`⚡ Velocidad establecida a: ${velocidadActual}`);
-  }
-}
-
-// Enviar comando de velocidad al carro
-function enviarVelocidad() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    console.warn("⚠️ WebSocket no conectado, velocidad no enviada");
-    return;
-  }
-  
-  const data = {
-    id_dispositivo: 1,
-    tipo_evento: 'AjustarVelocidad',
-    detalle: `Velocidad: ${velocidadActual}`,
-    valor: velocidadActual,
-    fecha_hora: new Date().toISOString(),
+function mostrarNotificacion(mensaje, tipo = "info") {
+  // Tipos: success, info, warning, danger
+  const tiposClases = {
+    "success": "alert-success",
+    "info": "alert-info",
+    "warning": "alert-warning",
+    "danger": "alert-danger"
   };
   
-  try {
-    ws.send(JSON.stringify(data));
-    console.log(`📤 Velocidad enviada: ${velocidadActual}`);
-    
-    // Mostrar notificación visual breve
-    mostrarNotificacionVelocidad(velocidadActual);
-  } catch (err) {
-    console.error("❌ Error al enviar velocidad:", err);
-  }
-}
-
-// Mostrar notificación de velocidad cambiada
-function mostrarNotificacionVelocidad(velocidad) {
-  // Crear o actualizar notificación
-  let notif = document.getElementById('speed-notification');
-  if (!notif) {
-    notif = document.createElement('div');
-    notif.id = 'speed-notification';
-    notif.className = 'speed-notification';
-    document.querySelector('.control-panel').appendChild(notif);
-  }
+  const alertClass = tiposClases[tipo] || "alert-info";
   
-  let texto = '';
-  if (velocidad === 0) {
-    texto = '🚫 Velocidad: 0 (Detenido)';
-    notif.className = 'speed-notification speed-stop';
-  } else if (velocidad <= 50) {
-    texto = '🐢 Velocidad: Lenta';
-    notif.className = 'speed-notification speed-slow';
-  } else if (velocidad <= 150) {
-    texto = '🚗 Velocidad: Normal';
-    notif.className = 'speed-notification speed-normal';
-  } else if (velocidad <= 200) {
-    texto = '⚡ Velocidad: Rápida';
-    notif.className = 'speed-notification speed-fast';
-  } else {
-    texto = '🔥 Velocidad: Máxima';
-    notif.className = 'speed-notification speed-max';
-  }
+  // Crear elemento de notificación
+  const notificacion = document.createElement('div');
+  notificacion.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+  notificacion.style.cssText = `
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  `;
   
-  notif.innerHTML = `<i class="fas fa-bolt me-2"></i>${texto} (${velocidad})`;
-  notif.style.opacity = '1';
+  notificacion.innerHTML = `
+    <strong>${mensaje}</strong>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
   
-  // Ocultar después de 2 segundos
+  // Agregar al cuerpo del documento
+  document.body.appendChild(notificacion);
+  
+  // Auto-eliminar después de 5 segundos
   setTimeout(() => {
-    if (notif) {
-      notif.style.opacity = '0';
-      setTimeout(() => {
-        if (notif && notif.parentNode) {
-          notif.parentNode.removeChild(notif);
-        }
-      }, 500);
+    if (notificacion.parentNode) {
+      notificacion.remove();
     }
-  }, 2000);
+  }, 5000);
 }
 
-// Ajustar velocidad por teclado (atajos)
-document.addEventListener('keydown', function(event) {
-  const speedSlider = document.getElementById('speed-slider');
-  if (!speedSlider) return;
-  
-  let nuevaVelocidad = velocidadActual;
-  
-  switch(event.key) {
-    case 'ArrowUp':
-    case '+':
-      // Aumentar velocidad en 10
-      nuevaVelocidad = Math.min(250, velocidadActual + 10);
-      event.preventDefault();
-      break;
-      
-    case 'ArrowDown':
-    case '-':
-      // Disminuir velocidad en 10
-      nuevaVelocidad = Math.max(0, velocidadActual - 10);
-      event.preventDefault();
-      break;
-      
-    case '0':
-      // Parar
-      nuevaVelocidad = 0;
-      break;
-      
-    case 'm':
-    case 'M':
-      // Velocidad media
-      nuevaVelocidad = 125;
-      break;
-      
-    case ' ':
-      // Espacio para velocidad normal (128)
-      nuevaVelocidad = 128;
-      event.preventDefault();
-      break;
-      
-    default:
-      return; // Salir si no es una tecla de velocidad
-  }
-  
-  if (nuevaVelocidad !== velocidadActual) {
-    setSpeed(nuevaVelocidad);
-  }
-});
-
-// Modificar función enviarEventoWS para incluir velocidad
-function enviarEventoWSConVelocidad(tipo_evento) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    console.warn("⚠️ WebSocket no conectado, evento con velocidad no enviado");
-    return;
-  }
-  
-  const data = {
-    id_dispositivo: 1,
-    tipo_evento: tipo_evento,
-    detalle: `Movimiento: ${tipo_evento} | Velocidad: ${velocidadActual}`,
-    velocidad: velocidadActual,
-    fecha_hora: new Date().toISOString(),
-  };
-  
-  try {
-    ws.send(JSON.stringify(data));
-    console.log(`📤 Evento con velocidad enviado: ${tipo_evento} (${velocidadActual})`);
-  } catch (err) {
-    console.error("❌ Error al enviar evento con velocidad:", err);
-  }
+function mostrarNotificacionError(mensaje) {
+  mostrarNotificacion(mensaje, "danger");
 }
 
-// Modificar las funciones de movimiento para usar velocidad
-function iniciarMovimientoConVelocidad(tipo) {
-  lastMovimiento = tipo;
-  if (movimientoActivo) {
-    movimientoActivo.innerText = `Moviendo: ${tipo} (Vel: ${velocidadActual})`;
-    movimientoActivo.classList.add('activo');
-  }
-  enviarEventoWSConVelocidad(tipo);
+// =============================================================
+// 🚀 INICIALIZACIÓN
+// =============================================================
+function inicializarElementosDOM() {
+  movimientoActivo = document.getElementById("movimiento-activo");
+  listaEventos = document.getElementById("listaEventos");
+  
+  console.log("✅ Elementos DOM inicializados");
 }
 
-// Actualizar la inicialización para incluir el variador
 window.addEventListener("DOMContentLoaded", () => {
   console.log("🚀 Inicializando aplicación...");
   
   inicializarElementosDOM();
+  
+  // Solo conectar WebSocket una vez
   conectarWebSocket();
-  cargarSecuencias();
-  cargarObstaculos();
-  actualizarSecuenciaUI();
-  inicializarVariadorVelocidad(); // 🆕 Inicializar variador
+  
+  // Inicializar control Xbox
+  const xboxController = new XboxController();
+  
+  // Cargar datos después de un breve retraso (cuando el WebSocket esté listo)
+  setTimeout(() => {
+    cargarSecuencias();
+    cargarObstaculos();
+    actualizarSecuenciaUI();
+    inicializarVariadorVelocidad();
+  }, 2000); // Aumentado a 2 segundos para dar tiempo a la conexión
   
   // Event listeners para botones
   document.querySelectorAll('.control-btn').forEach(btn => {
@@ -1319,13 +1400,74 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
   
+  // Atajos de teclado para velocidad
+  document.addEventListener('keydown', function(event) {
+    const speedSlider = document.getElementById('speed-slider');
+    if (!speedSlider) return;
+    
+    let nuevaVelocidad = velocidadActual;
+    
+    switch(event.key) {
+      case 'ArrowUp':
+      case '+':
+        // Aumentar velocidad en 10
+        nuevaVelocidad = Math.min(250, velocidadActual + 10);
+        event.preventDefault();
+        break;
+        
+      case 'ArrowDown':
+      case '-':
+        // Disminuir velocidad en 10
+        nuevaVelocidad = Math.max(0, velocidadActual - 10);
+        event.preventDefault();
+        break;
+        
+      case '0':
+        // Parar
+        nuevaVelocidad = 0;
+        break;
+        
+      case 'm':
+      case 'M':
+        // Velocidad media
+        nuevaVelocidad = 125;
+        break;
+        
+      case ' ':
+        // Espacio para velocidad normal (128)
+        nuevaVelocidad = 128;
+        event.preventDefault();
+        break;
+        
+      default:
+        return; // Salir si no es una tecla de velocidad
+    }
+    
+    if (nuevaVelocidad !== velocidadActual) {
+      setSpeed(nuevaVelocidad);
+    }
+  });
+  
   console.log("✅ Aplicación inicializada correctamente");
 });
 
 // Función de diagnóstico
-function debugSecuencias() {
-  console.log("=== DEBUG SECUENCIAS ===");
-  console.log("Secuencia actual:", secuencia);
-  console.log("Secuencias guardadas:", secuenciasGuardadas);
-  console.log("URL del servidor:", SERVER_URL);
+function debugWebSocket() {
+  console.log("=== DEBUG WEBSOCKET ===");
+  console.log("Estado:", ws ? ws.readyState : "No inicializado");
+  console.log("Estado WebSocket:");
+  console.log("  - CONNECTING: 0");
+  console.log("  - OPEN: 1");
+  console.log("  - CLOSING: 2");
+  console.log("  - CLOSED: 3");
+  console.log("Estado actual:", ws ? ws.readyState : "No existe");
+  console.log("URL:", WS_URL);
+  console.log("Reconexión intentos:", reconnectAttempts);
+  console.log("Último movimiento:", lastMovimiento);
+  console.log("Velocidad actual:", velocidadActual);
+  
+  // Probar conexión HTTP
+  fetch(`${SERVER_URL}/api/health`)
+    .then(res => console.log("Health check:", res.status))
+    .catch(err => console.log("Health check error:", err));
 }
