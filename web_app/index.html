@@ -37,6 +37,10 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
 
+
+
+  
+
   <div class="container-fluid mt-3">
     <!-- Sección Principal: Controles, Secuencias y Eventos en una misma fila -->
     <div class="row main-controls-row">
@@ -252,6 +256,46 @@
         <span>Modo Demo</span>
       </button>
     </div>
+
+
+<!-- 🆕 NUEVO: VARIADOR DE VELOCIDAD -->
+<div class="speed-control mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0 text-light">
+      <i class="fas fa-tachometer-alt me-2"></i>Velocidad
+    </h6>
+    <div class="speed-display">
+      <span id="speed-value" class="badge bg-info fs-6">128</span>
+      <small class="text-muted ms-1">unidades</small>
+    </div>
+  </div>
+  
+  <div class="speed-slider-container">
+    <input type="range" 
+           class="form-range" 
+           id="speed-slider" 
+           min="0" 
+           max="250" 
+           value="128"
+           step="1">
+    <div class="speed-labels d-flex justify-content-between mt-1">
+      <small class="text-muted">Lento (0)</small>
+      <small class="text-muted">Medio (125)</small>
+      <small class="text-muted">Rápido (250)</small>
+    </div>
+  </div>
+  
+  <div class="speed-presets mt-3">
+    <div class="btn-group btn-group-sm w-100" role="group">
+      <button type="button" class="btn btn-outline-info" onclick="setSpeed(0)">Parar</button>
+      <button type="button" class="btn btn-outline-primary" onclick="setSpeed(50)">Lento</button>
+      <button type="button" class="btn btn-outline-primary" onclick="setSpeed(100)">Normal</button>
+      <button type="button" class="btn btn-outline-warning" onclick="setSpeed(175)">Rápido</button>
+      <button type="button" class="btn btn-outline-danger" onclick="setSpeed(250)">Máximo</button>
+    </div>
+  </div>
+</div>
+
 
     <div class="mt-3">
       <small class="text-muted" id="movimiento-activo"></small>

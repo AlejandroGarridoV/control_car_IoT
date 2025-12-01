@@ -1673,3 +1673,259 @@ footer {
     font-size: 1rem;
   }
 }
+
+
+/* ============================================================= */
+/* 🎚️ ESTILOS PARA EL VARIADOR DE VELOCIDAD */
+/* ============================================================= */
+
+.speed-control {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 15px;
+  border: 1px solid var(--border-light);
+  margin-top: 20px;
+}
+
+.speed-display {
+  display: flex;
+  align-items: center;
+}
+
+.speed-display .badge {
+  font-size: 1rem !important;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Estilos para el slider personalizado */
+.speed-slider-container {
+  position: relative;
+  padding: 10px 5px;
+}
+
+#speed-slider {
+  width: 100%;
+  height: 25px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+#speed-slider:focus {
+  outline: none;
+}
+
+/* Track (fondo del slider) */
+#speed-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: linear-gradient(to right, 
+    #10b981 0%, 
+    #10b981 20%, 
+    #3b82f6 20%, 
+    #3b82f6 60%, 
+    #f59e0b 60%, 
+    #f59e0b 80%, 
+    #ef4444 80%, 
+    #ef4444 100%);
+  border-radius: 10px;
+  border: none;
+}
+
+#speed-slider::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: linear-gradient(to right, 
+    #10b981 0%, 
+    #10b981 20%, 
+    #3b82f6 20%, 
+    #3b82f6 60%, 
+    #f59e0b 60%, 
+    #f59e0b 80%, 
+    #ef4444 80%, 
+    #ef4444 100%);
+  border-radius: 10px;
+  border: none;
+}
+
+/* Thumb (control deslizante) */
+#speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: var(--lighter);
+  cursor: pointer;
+  margin-top: -7px;
+  border: 3px solid var(--primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  transition: all 0.2s ease;
+}
+
+#speed-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.8);
+}
+
+#speed-slider::-moz-range-thumb {
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+  background: var(--lighter);
+  cursor: pointer;
+  border: 3px solid var(--primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  transition: all 0.2s ease;
+}
+
+#speed-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.8);
+}
+
+.speed-labels {
+  font-size: 0.8rem;
+}
+
+.speed-presets .btn-group {
+  gap: 4px;
+}
+
+.speed-presets .btn {
+  border-radius: 6px !important;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.speed-presets .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Notificación de velocidad */
+.speed-notification {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  animation: slideInRight 0.3s ease;
+}
+
+.speed-stop {
+  border-left: 4px solid #6b7280;
+}
+
+.speed-slow {
+  border-left: 4px solid var(--success);
+}
+
+.speed-normal {
+  border-left: 4px solid var(--primary);
+}
+
+.speed-fast {
+  border-left: 4px solid var(--warning);
+}
+
+.speed-max {
+  border-left: 4px solid var(--danger);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive para el variador de velocidad */
+@media (max-width: 768px) {
+  .speed-control {
+    padding: 12px;
+  }
+  
+  .speed-display .badge {
+    font-size: 0.9rem !important;
+    padding: 6px 10px;
+  }
+  
+  .speed-presets .btn {
+    padding: 5px 6px;
+    font-size: 0.75rem;
+  }
+  
+  .speed-notification {
+    top: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .speed-presets .btn-group {
+    flex-wrap: wrap;
+  }
+  
+  .speed-presets .btn {
+    flex: 1;
+    min-width: 60px;
+  }
+  
+  .speed-labels small {
+    font-size: 0.7rem;
+  }
+}
+
+/* Efectos visuales para cambios de velocidad */
+#speed-slider:active {
+  cursor: grabbing;
+}
+
+/* Indicador visual de velocidad en los botones de movimiento */
+.control-btn.active-speed::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--primary);
+  opacity: 0.7;
+}
+
+/* Modificar la función actualizarEstado para mostrar velocidad */
+.event-item.con-velocidad {
+  border-left-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.event-item.con-velocidad strong::after {
+  content: ' ⚡';
+  color: var(--warning);
+}
+

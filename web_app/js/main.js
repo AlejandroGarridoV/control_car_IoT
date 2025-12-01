@@ -1054,6 +1054,274 @@ class XboxController {
 // Inicializar control Xbox
 let xboxController = new XboxController();
 
+
+// =============================================================
+// 🎚️ VARIADOR DE VELOCIDAD - COMPLETAMENTE FUNCIONAL
+// =============================================================
+
+let velocidadActual = 128; // Velocidad por defecto (50% de 250)
+
+// Inicializar el variador de velocidad
+function inicializarVariadorVelocidad() {
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
+  
+  if (speedSlider && speedValue) {
+    // Actualizar valor visual al mover el slider
+    speedSlider.addEventListener('input', function() {
+      velocidadActual = parseInt(this.value);
+      speedValue.textContent = velocidadActual;
+      actualizarColorVelocidad(velocidadActual);
+      
+      // Enviar velocidad al carro automáticamente si está conectado
+      enviarVelocidad();
+    });
+    
+    // También al cambiar (soltar el slider)
+    speedSlider.addEventListener('change', function() {
+      velocidadActual = parseInt(this.value);
+      console.log(`🎚️ Velocidad ajustada a: ${velocidadActual}`);
+    });
+    
+    // Inicializar color
+    actualizarColorVelocidad(velocidadActual);
+  }
+}
+
+// Actualizar color del badge según la velocidad
+function actualizarColorVelocidad(velocidad) {
+  const speedValue = document.getElementById('speed-value');
+  if (!speedValue) return;
+  
+  // Limpiar clases anteriores
+  speedValue.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger');
+  
+  // Asignar color según velocidad
+  if (velocidad === 0) {
+    speedValue.className = 'badge bg-secondary fs-6';
+  } else if (velocidad <= 50) {
+    speedValue.className = 'badge bg-success fs-6';
+  } else if (velocidad <= 150) {
+    speedValue.className = 'badge bg-info fs-6';
+  } else if (velocidad <= 200) {
+    speedValue.className = 'badge bg-warning fs-6';
+  } else {
+    speedValue.className = 'badge bg-danger fs-6';
+  }
+}
+
+// Establecer velocidad específica
+function setSpeed(valor) {
+  const speedSlider = document.getElementById('speed-slider');
+  const speedValue = document.getElementById('speed-value');
+  
+  if (speedSlider && speedValue) {
+    // Asegurarse de que esté dentro del rango
+    velocidadActual = Math.max(0, Math.min(250, valor));
+    
+    // Actualizar slider y display
+    speedSlider.value = velocidadActual;
+    speedValue.textContent = velocidadActual;
+    
+    // Actualizar color
+    actualizarColorVelocidad(velocidadActual);
+    
+    // Enviar velocidad al carro
+    enviarVelocidad();
+    
+    console.log(`⚡ Velocidad establecida a: ${velocidadActual}`);
+  }
+}
+
+// Enviar comando de velocidad al carro
+function enviarVelocidad() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn("⚠️ WebSocket no conectado, velocidad no enviada");
+    return;
+  }
+  
+  const data = {
+    id_dispositivo: 1,
+    tipo_evento: 'AjustarVelocidad',
+    detalle: `Velocidad: ${velocidadActual}`,
+    valor: velocidadActual,
+    fecha_hora: new Date().toISOString(),
+  };
+  
+  try {
+    ws.send(JSON.stringify(data));
+    console.log(`📤 Velocidad enviada: ${velocidadActual}`);
+    
+    // Mostrar notificación visual breve
+    mostrarNotificacionVelocidad(velocidadActual);
+  } catch (err) {
+    console.error("❌ Error al enviar velocidad:", err);
+  }
+}
+
+// Mostrar notificación de velocidad cambiada
+function mostrarNotificacionVelocidad(velocidad) {
+  // Crear o actualizar notificación
+  let notif = document.getElementById('speed-notification');
+  if (!notif) {
+    notif = document.createElement('div');
+    notif.id = 'speed-notification';
+    notif.className = 'speed-notification';
+    document.querySelector('.control-panel').appendChild(notif);
+  }
+  
+  let texto = '';
+  if (velocidad === 0) {
+    texto = '🚫 Velocidad: 0 (Detenido)';
+    notif.className = 'speed-notification speed-stop';
+  } else if (velocidad <= 50) {
+    texto = '🐢 Velocidad: Lenta';
+    notif.className = 'speed-notification speed-slow';
+  } else if (velocidad <= 150) {
+    texto = '🚗 Velocidad: Normal';
+    notif.className = 'speed-notification speed-normal';
+  } else if (velocidad <= 200) {
+    texto = '⚡ Velocidad: Rápida';
+    notif.className = 'speed-notification speed-fast';
+  } else {
+    texto = '🔥 Velocidad: Máxima';
+    notif.className = 'speed-notification speed-max';
+  }
+  
+  notif.innerHTML = `<i class="fas fa-bolt me-2"></i>${texto} (${velocidad})`;
+  notif.style.opacity = '1';
+  
+  // Ocultar después de 2 segundos
+  setTimeout(() => {
+    if (notif) {
+      notif.style.opacity = '0';
+      setTimeout(() => {
+        if (notif && notif.parentNode) {
+          notif.parentNode.removeChild(notif);
+        }
+      }, 500);
+    }
+  }, 2000);
+}
+
+// Ajustar velocidad por teclado (atajos)
+document.addEventListener('keydown', function(event) {
+  const speedSlider = document.getElementById('speed-slider');
+  if (!speedSlider) return;
+  
+  let nuevaVelocidad = velocidadActual;
+  
+  switch(event.key) {
+    case 'ArrowUp':
+    case '+':
+      // Aumentar velocidad en 10
+      nuevaVelocidad = Math.min(250, velocidadActual + 10);
+      event.preventDefault();
+      break;
+      
+    case 'ArrowDown':
+    case '-':
+      // Disminuir velocidad en 10
+      nuevaVelocidad = Math.max(0, velocidadActual - 10);
+      event.preventDefault();
+      break;
+      
+    case '0':
+      // Parar
+      nuevaVelocidad = 0;
+      break;
+      
+    case 'm':
+    case 'M':
+      // Velocidad media
+      nuevaVelocidad = 125;
+      break;
+      
+    case ' ':
+      // Espacio para velocidad normal (128)
+      nuevaVelocidad = 128;
+      event.preventDefault();
+      break;
+      
+    default:
+      return; // Salir si no es una tecla de velocidad
+  }
+  
+  if (nuevaVelocidad !== velocidadActual) {
+    setSpeed(nuevaVelocidad);
+  }
+});
+
+// Modificar función enviarEventoWS para incluir velocidad
+function enviarEventoWSConVelocidad(tipo_evento) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn("⚠️ WebSocket no conectado, evento con velocidad no enviado");
+    return;
+  }
+  
+  const data = {
+    id_dispositivo: 1,
+    tipo_evento: tipo_evento,
+    detalle: `Movimiento: ${tipo_evento} | Velocidad: ${velocidadActual}`,
+    velocidad: velocidadActual,
+    fecha_hora: new Date().toISOString(),
+  };
+  
+  try {
+    ws.send(JSON.stringify(data));
+    console.log(`📤 Evento con velocidad enviado: ${tipo_evento} (${velocidadActual})`);
+  } catch (err) {
+    console.error("❌ Error al enviar evento con velocidad:", err);
+  }
+}
+
+// Modificar las funciones de movimiento para usar velocidad
+function iniciarMovimientoConVelocidad(tipo) {
+  lastMovimiento = tipo;
+  if (movimientoActivo) {
+    movimientoActivo.innerText = `Moviendo: ${tipo} (Vel: ${velocidadActual})`;
+    movimientoActivo.classList.add('activo');
+  }
+  enviarEventoWSConVelocidad(tipo);
+}
+
+// Actualizar la inicialización para incluir el variador
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 Inicializando aplicación...");
+  
+  inicializarElementosDOM();
+  conectarWebSocket();
+  cargarSecuencias();
+  cargarObstaculos();
+  actualizarSecuenciaUI();
+  inicializarVariadorVelocidad(); // 🆕 Inicializar variador
+  
+  // Event listeners para botones
+  document.querySelectorAll('.control-btn').forEach(btn => {
+    btn.addEventListener('mousedown', function() {
+      this.classList.add('presionado');
+    });
+    
+    btn.addEventListener('mouseup', function() {
+      this.classList.remove('presionado');
+    });
+    
+    btn.addEventListener('mouseleave', function() {
+      this.classList.remove('presionado');
+    });
+    
+    btn.addEventListener('touchstart', function() {
+      this.classList.add('presionado');
+    });
+    
+    btn.addEventListener('touchend', function() {
+      this.classList.remove('presionado');
+    });
+  });
+  
+  console.log("✅ Aplicación inicializada correctamente");
+});
+
 // Función de diagnóstico
 function debugSecuencias() {
   console.log("=== DEBUG SECUENCIAS ===");
