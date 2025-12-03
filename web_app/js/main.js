@@ -18,23 +18,222 @@ const MAX_RECONNECT_ATTEMPTS = 50;
 // --- VARIADOR DE VELOCIDAD ---
 let velocidadActual = 250; // Velocidad por defecto (máxima)
 
+// --- SISTEMA DE EVENTOS (SOLO CONTROL) ---
+let eventosControl = [];
+const MAX_EVENTOS = 50;
+
 // --- ELEMENTOS DOM ---
-let movimientoActivo, listaEventos;
+let movimientoActivo;
 
 // =============================================================
-// 🎮 FUNCIONES DE CONTROL DEL CARRO
+// 🎮 SISTEMA DE EVENTOS - SOLO CONTROL
+// =============================================================
+
+// Función para registrar eventos de CONTROL (no obstáculos)
+function registrarEventoControl(tipo, subtipo, titulo, detalles = '', metadata = {}) {
+  const evento = {
+    id: Date.now(),
+    tipo: tipo, // 'movimiento', 'secuencia', 'velocidad', 'sistema'
+    subtipo: subtipo, // 'adelante', 'atras', 'giro', etc.
+    titulo: titulo,
+    detalles: detalles,
+    metadata: {
+      velocidad: velocidadActual,
+      ...metadata
+    },
+    timestamp: new Date(),
+    tiempo_formateado: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})
+  };
+  
+  // Insertar al inicio del array
+  eventosControl.unshift(evento);
+  
+  // Limitar el tamaño del array
+  if (eventosControl.length > MAX_EVENTOS) {
+    eventosControl.pop();
+  }
+  
+  // Actualizar contador
+  eventoCount = eventosControl.length;
+  actualizarContadorEventos();
+  
+  // Actualizar la interfaz
+  actualizarListaEventosControl();
+  
+  console.log(`📝 Evento de control registrado: ${tipo} - ${subtipo} - ${titulo}`);
+  
+  return evento;
+}
+
+// Actualizar lista de eventos (SOLO CONTROL)
+function actualizarListaEventosControl() {
+  const lista = document.getElementById('listaEventos');
+  if (!lista) return;
+  
+  if (eventosControl.length === 0) {
+    lista.innerHTML = `
+      <div class="empty-events">
+        <i class="fas fa-history fa-lg mb-2"></i>
+        <p class="small">Sin eventos de control</p>
+        <small class="text-muted">Usa los controles para comenzar</small>
+      </div>
+    `;
+    return;
+  }
+  
+  lista.innerHTML = eventosControl.map((evento, index) => `
+    <div class="event-item ${getClaseEventoControl(evento.subtipo)} ${index === 0 ? 'new' : ''}">
+      <div class="event-header">
+        <div class="event-time">${evento.tiempo_formateado}</div>
+        <div class="event-type">
+          <i class="${getIconoEventoControl(evento.subtipo)}"></i>
+          ${getTipoTexto(evento.tipo)}
+        </div>
+      </div>
+      <div class="event-body">
+        <div class="event-title">${evento.titulo}</div>
+        <div class="event-details">${evento.detalles}</div>
+        <div class="event-meta">
+          ${evento.metadata.velocidad ? `<span><i class="fas fa-tachometer-alt"></i> Vel: ${evento.metadata.velocidad}</span>` : ''}
+          ${evento.metadata.total_movimientos ? `<span><i class="fas fa-list-ol"></i> Movs: ${evento.metadata.total_movimientos}</span>` : ''}
+          ${evento.metadata.paso ? `<span><i class="fas fa-step-forward"></i> Paso ${evento.metadata.paso}/${evento.metadata.total}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+  
+  // Remover clase "new" después de la animación
+  setTimeout(() => {
+    const items = lista.querySelectorAll('.event-item.new');
+    items.forEach(item => item.classList.remove('new'));
+  }, 500);
+}
+
+// Funciones auxiliares para estilos de eventos de CONTROL
+function getClaseEventoControl(subtipo) {
+  const clases = {
+    // Movimientos básicos
+    'adelante': 'event-adelante',
+    'atras': 'event-atras',
+    'izquierda': 'event-izquierda',
+    'derecha': 'event-derecha',
+    'detener': 'event-detener',
+    
+    // Curvas
+    'curva_izquierda_adelante': 'event-curva',
+    'curva_derecha_adelante': 'event-curva',
+    'curva_izquierda_atras': 'event-curva',
+    'curva_derecha_atras': 'event-curva',
+    
+    // Giros
+    'girarizquierda90': 'event-giro',
+    'girarderecha90': 'event-giro',
+    'girarizquierda180': 'event-giro',
+    'girarderecha180': 'event-giro',
+    
+    // Otros
+    'velocidad': 'event-velocidad',
+    'demo': 'event-demo',
+    'secuencia': 'event-secuencia',
+    'sistema': 'event-sistema'
+  };
+  
+  return clases[subtipo] || 'event-sistema';
+}
+
+function getIconoEventoControl(subtipo) {
+  const iconos = {
+    // Movimientos básicos
+    'adelante': 'fas fa-arrow-up',
+    'atras': 'fas fa-arrow-down',
+    'izquierda': 'fas fa-arrow-left',
+    'derecha': 'fas fa-arrow-right',
+    'detener': 'fas fa-stop',
+    
+    // Curvas
+    'curva_izquierda_adelante': 'fas fa-arrow-up rotate-45-left',
+    'curva_derecha_adelante': 'fas fa-arrow-up rotate-45-right',
+    'curva_izquierda_atras': 'fas fa-arrow-down rotate-45-right',
+    'curva_derecha_atras': 'fas fa-arrow-down rotate-45-left',
+    
+    // Giros
+    'girarizquierda90': 'fas fa-undo',
+    'girarderecha90': 'fas fa-redo',
+    'girarizquierda180': 'fas fa-undo fa-rotate-270',
+    'girarderecha180': 'fas fa-redo fa-rotate-90',
+    
+    // Otros
+    'velocidad': 'fas fa-tachometer-alt',
+    'demo': 'fas fa-music',
+    'secuencia': 'fas fa-list-ol',
+    'sistema': 'fas fa-cog'
+  };
+  
+  return iconos[subtipo] || 'fas fa-info-circle';
+}
+
+function getTipoTexto(tipo) {
+  const textos = {
+    'movimiento': 'MOVIMIENTO',
+    'secuencia': 'SECUENCIA',
+    'velocidad': 'VELOCIDAD',
+    'sistema': 'SISTEMA'
+  };
+  
+  return textos[tipo] || 'CONTROL';
+}
+
+// Actualizar contador de eventos
+function actualizarContadorEventos() {
+  const totalCount = document.getElementById('total-event-count');
+  if (totalCount) {
+    totalCount.textContent = eventoCount;
+    
+    // Cambiar color según cantidad
+    if (eventoCount > 40) {
+      totalCount.className = 'badge bg-danger';
+    } else if (eventoCount > 20) {
+      totalCount.className = 'badge bg-warning';
+    } else {
+      totalCount.className = 'badge bg-primary';
+    }
+  }
+}
+
+// =============================================================
+// 🎮 FUNCIONES DE CONTROL DEL CARRO (ACTUALIZADAS)
 // =============================================================
 function iniciarMovimiento(tipo) {
   lastMovimiento = tipo;
+  
+  // Convertir tipo a subtipo para el sistema de eventos
+  let subtipo = 'adelante';
+  if (tipo === 'Atrás') subtipo = 'atras';
+  else if (tipo === 'Izquierda') subtipo = 'izquierda';
+  else if (tipo === 'Derecha') subtipo = 'derecha';
+  else if (tipo === 'Detenerse') subtipo = 'detener';
+  else if (tipo.includes('Curva')) subtipo = tipo.toLowerCase().replace(/ /g, '_');
+  else if (tipo.includes('Girar')) subtipo = tipo.toLowerCase().replace('girar', 'girar').replace(/ /g, '');
+  else if (tipo === 'Demo') subtipo = 'demo';
+  
+  // Registrar evento de CONTROL
+  registrarEventoControl('movimiento', subtipo, tipo, `Movimiento iniciado (Vel: ${velocidadActual})`, {
+    velocidad: velocidadActual
+  });
+  
   if (movimientoActivo) {
     movimientoActivo.innerText = `Moviendo: ${tipo} (Vel: ${velocidadActual})`;
     movimientoActivo.classList.add('activo');
   }
+  
   enviarEventoWS(tipo);
 }
 
 function detenerMovimiento() {
   if (lastMovimiento) {
+    // Registrar evento de CONTROL
+    registrarEventoControl('movimiento', 'detener', 'Detenerse', 'Movimiento detenido');
+    
     if (movimientoActivo) {
       movimientoActivo.innerText = "Detenido";
       movimientoActivo.classList.remove('activo');
@@ -45,10 +244,9 @@ function detenerMovimiento() {
 }
 
 // =============================================================
-// 🌐 CONEXIÓN WEBSOCKET - ÚNICA VERSIÓN
+// 🌐 CONEXIÓN WEBSOCKET - ACTUALIZADA (SIN REGISTRAR EVENTOS DE CONEXIÓN EN LA LISTA)
 // =============================================================
 function conectarWebSocket() {
-  // Verificar si ya estamos conectando/conectados
   if (ws) {
     if (ws.readyState === WebSocket.CONNECTING) {
       console.log("⚠️ Ya se está conectando al WebSocket...");
@@ -63,7 +261,6 @@ function conectarWebSocket() {
   console.log(`🔌 Conectando al WebSocket... (Intento ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
   
   try {
-    // Cerrar conexión existente si hay una
     if (ws) {
       ws.close();
       ws = null;
@@ -73,7 +270,7 @@ function conectarWebSocket() {
 
     ws.onopen = () => {
       console.log("✅ Conectado al WebSocket!");
-      reconnectDelay = 1000; // Resetear delay
+      reconnectDelay = 1000;
       reconnectAttempts = 0;
       
       const connectionStatus = document.getElementById("connection-status");
@@ -81,10 +278,14 @@ function conectarWebSocket() {
         connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-success"></i> Conectado';
       }
       
-      // Enviar identificación inmediatamente
+      // NO registrar evento de conexión en la lista de eventos de control
+      // Solo mostrar notificación
+      mostrarNotificacion("✅ Conectado al servidor", "success");
+      
+      // Enviar identificación
       enviarIdentificacion();
       
-      // Enviar la velocidad actual al conectar
+      // Enviar velocidad actual
       setTimeout(() => {
         enviarVelocidadAlCarro();
       }, 500);
@@ -94,7 +295,13 @@ function conectarWebSocket() {
       try {
         const data = JSON.parse(event.data);
         console.log("📥 Mensaje WebSocket recibido:", data);
-        actualizarEstado(data);
+        
+        // Solo procesar datos, NO registrar en eventos de control
+        // (Los obstáculos tienen su propia sección)
+        if (data.tipo_evento && data.tipo_evento.includes('Obstáculo')) {
+          // Los obstáculos se manejan en su propia sección
+          console.log("Obstáculo detectado:", data);
+        }
       } catch (err) {
         console.warn("⚠️ Mensaje no JSON:", event.data);
       }
@@ -103,16 +310,17 @@ function conectarWebSocket() {
     ws.onclose = (event) => {
       console.warn(`❌ Desconectado del WebSocket. Código: ${event.code}, Razón: ${event.reason || 'Sin razón'}`);
       
+      // NO registrar evento de desconexión en la lista de eventos de control
+      // Solo actualizar estado y mostrar notificación
       const connectionStatus = document.getElementById("connection-status");
       if (connectionStatus) {
         connectionStatus.innerHTML = '<i class="fas fa-signal me-1 text-danger"></i> Desconectado';
       }
       
-      // Solo reconectar si no fue un cierre intencional y no superamos el límite
+      mostrarNotificacion("❌ Desconectado del servidor", "danger");
+      
       if (event.code !== 1000 && event.code !== 1001 && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
-        
-        // Backoff exponencial con jitter
         reconnectDelay = Math.min(maxReconnectDelay, reconnectDelay * 1.5 + Math.random() * 1000);
         
         console.log(`⏳ Reconectando en ${Math.round(reconnectDelay/1000)}s (intento ${reconnectAttempts})`);
@@ -128,12 +336,10 @@ function conectarWebSocket() {
 
     ws.onerror = (error) => {
       console.error("⚠️ Error en WebSocket:", error);
-      // No necesitamos hacer nada aquí, onclose se llamará después
     };
   } catch (error) {
     console.error("❌ Error al crear WebSocket:", error);
     
-    // Intentar reconectar después de 5 segundos
     setTimeout(() => {
       if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
@@ -143,7 +349,6 @@ function conectarWebSocket() {
   }
 }
 
-// Función para enviar identificación al conectar
 function enviarIdentificacion() {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   
@@ -162,15 +367,13 @@ function enviarIdentificacion() {
   }
 }
 
-// Función para enviar eventos por WebSocket (CON VELOCIDAD)
+// Función para enviar eventos por WebSocket (ACTUALIZADA)
 function enviarEventoWS(tipo_evento) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     console.warn("⚠️ WebSocket no conectado, evento no enviado");
     
-    // Mostrar alerta visual
+    // Solo mostrar notificación, NO registrar en eventos de control
     mostrarNotificacionError("No hay conexión con el servidor");
-    
-    // No intentamos reconectar aquí porque ya hay un sistema de reconexión
     return;
   }
 
@@ -192,18 +395,23 @@ function enviarEventoWS(tipo_evento) {
 }
 
 // =============================================================
-// 🧩 SISTEMA DE SECUENCIAS
+// 🧩 SISTEMA DE SECUENCIAS (ACTUALIZADAS)
 // =============================================================
-
-// Agregar movimiento a la secuencia actual
 function agregarMovimiento(tipo) {
   secuencia.push(tipo);
   actualizarSecuenciaUI();
   console.log(`➕ Movimiento agregado: ${tipo}. Secuencia:`, secuencia);
+  
+  // Registrar evento de CONTROL
+  registrarEventoControl('secuencia', 'secuencia', 'Secuencia Actualizada', 
+    `Movimiento agregado: ${tipo}`, {
+      total_movimientos: secuencia.length
+    }
+  );
+  
   mostrarNotificacion(`Movimiento agregado: ${tipo}`, "success");
 }
 
-// Agregar movimiento aleatorio
 function agregarMovimientoPersonalizado() {
   const movimientos = [
     "Adelante", "Atrás", "Izquierda", "Derecha", "Demo",
@@ -215,18 +423,24 @@ function agregarMovimientoPersonalizado() {
   agregarMovimiento(random);
 }
 
-// Remover movimiento específico
 function removerMovimiento(index) {
   if (index >= 0 && index < secuencia.length) {
     const movimientoEliminado = secuencia[index];
     secuencia.splice(index, 1);
     actualizarSecuenciaUI();
     console.log(`➖ Movimiento eliminado: ${movimientoEliminado}`);
+    
+    // Registrar evento de CONTROL
+    registrarEventoControl('secuencia', 'secuencia', 'Secuencia Actualizada', 
+      `Movimiento eliminado: ${movimientoEliminado}`, {
+        total_movimientos: secuencia.length
+      }
+    );
+    
     mostrarNotificacion(`Movimiento eliminado`, "warning");
   }
 }
 
-// Ejecutar secuencia actual
 function ejecutarSecuencia() {
   if (secuencia.length === 0) {
     mostrarNotificacion('No hay movimientos en la secuencia', "warning");
@@ -234,6 +448,14 @@ function ejecutarSecuencia() {
   }
   
   console.log(`🎯 Ejecutando secuencia con ${secuencia.length} movimientos:`, secuencia);
+  
+  // Registrar evento de CONTROL
+  registrarEventoControl('secuencia', 'secuencia', 'Ejecución de Secuencia', 
+    `Iniciando secuencia con ${secuencia.length} movimientos`, {
+      total_movimientos: secuencia.length,
+      duracion_estimada: (secuencia.length * 1.5) + 's'
+    }
+  );
   
   const secuenciaActivaInfo = document.getElementById('secuencia-activa-info');
   const progresoSecuencia = document.getElementById('progreso-secuencia');
@@ -249,24 +471,37 @@ function ejecutarSecuencia() {
     progresoSecuencia.style.width = '0%';
   }
   
-  // Ejecutar cada movimiento con delay
   secuencia.forEach((movimiento, index) => {
     setTimeout(() => {
       console.log(`➡️ Ejecutando movimiento ${index + 1}: ${movimiento}`);
       enviarEventoWS(movimiento);
       
-      // Actualizar progreso
+      // Registrar cada movimiento individual
+      registrarEventoControl('secuencia', 'secuencia', 'Paso de Secuencia', 
+        `Paso ${index + 1}/${secuencia.length}: ${movimiento}`, {
+          paso: index + 1,
+          total: secuencia.length
+        }
+      );
+      
       const progreso = ((index + 1) / secuencia.length) * 100;
       if (progresoSecuencia) {
         progresoSecuencia.style.width = `${progreso}%`;
       }
       
-      // Limpiar al finalizar
       if (index === secuencia.length - 1) {
         setTimeout(() => {
           if (secuenciaActivaInfo) {
             secuenciaActivaInfo.innerHTML = '<small>Secuencia completada ✅</small>';
           }
+          
+          // Registrar evento de completado
+          registrarEventoControl('secuencia', 'secuencia', 'Secuencia Completada', 
+            'Secuencia ejecutada correctamente', {
+              total_movimientos: secuencia.length
+            }
+          );
+          
           mostrarNotificacion('Secuencia completada correctamente', "success");
           
           setTimeout(() => {
@@ -276,11 +511,10 @@ function ejecutarSecuencia() {
           
         }, 1000);
       }
-    }, index * 1500); // 1.5 segundos entre movimientos
+    }, index * 1500);
   });
 }
 
-// Limpiar secuencia actual
 function limpiarSecuencia() {
   if (secuencia.length === 0) {
     mostrarNotificacion('La secuencia ya está vacía', "info");
@@ -290,10 +524,13 @@ function limpiarSecuencia() {
   secuencia = [];
   actualizarSecuenciaUI();
   console.log('🗑️ Secuencia limpiada');
+  
+  // Registrar evento de CONTROL
+  registrarEventoControl('secuencia', 'secuencia', 'Secuencia Limpiada', 'Todos los movimientos eliminados');
+  
   mostrarNotificacion('Secuencia limpiada', "success");
 }
 
-// Actualizar interfaz de secuencia actual
 function actualizarSecuenciaUI() {
   const listaSecuencia = document.getElementById("listaSecuencia");
   if (!listaSecuencia) return;
@@ -320,21 +557,18 @@ function actualizarSecuenciaUI() {
 }
 
 // =============================================================
-// 💾 SISTEMA DE SECUENCIAS GUARDADAS
+// 💾 SISTEMA DE SECUENCIAS GUARDADAS (ACTUALIZADAS)
 // =============================================================
-
-// Cargar secuencias al iniciar
 async function cargarSecuencias() {
   console.log("🔄 Cargando secuencias...");
   await cargarSecuenciasDesdeBD();
 }
 
-// Cargar secuencias desde base de datos
 async function cargarSecuenciasDesdeBD() {
   try {
     console.log("🌐 Intentando cargar secuencias desde BD...");
     const response = await fetch(`${SERVER_URL}/api/secuencias`, {
-      signal: AbortSignal.timeout(10000) // Timeout de 10 segundos
+      signal: AbortSignal.timeout(10000)
     });
     
     if (!response.ok) {
@@ -346,7 +580,6 @@ async function cargarSecuenciasDesdeBD() {
 
     if (result.status === 'ok' && result.secuencias && Array.isArray(result.secuencias)) {
       const secuenciasBD = result.secuencias.map(sec => {
-        // Parsear movimientos (pueden venir como string JSON)
         let movimientos = [];
         if (typeof sec.movimientos === 'string') {
           try {
@@ -374,22 +607,20 @@ async function cargarSecuenciasDesdeBD() {
       
       secuenciasGuardadas = secuenciasBD;
       actualizarListaSecuenciasGuardadas();
+      
       mostrarNotificacion(`${secuenciasBD.length} secuencias cargadas`, "success");
       
     } else {
       console.warn('⚠️ Respuesta inesperada de BD:', result);
-      // Cargar desde localStorage como fallback
       cargarSecuenciasLocales();
     }
     
   } catch (error) {
     console.warn('⚠️ No se pudieron cargar secuencias desde BD:', error.message);
-    // Cargar desde localStorage como fallback
     cargarSecuenciasLocales();
   }
 }
 
-// Cargar secuencias desde localStorage (fallback)
 function cargarSecuenciasLocales() {
   try {
     const guardadas = localStorage.getItem('secuenciasCarro');
@@ -404,7 +635,6 @@ function cargarSecuenciasLocales() {
   }
 }
 
-// Guardar secuencia actual
 async function guardarSecuencia() {
   if (secuencia.length === 0) {
     mostrarNotificacion('No hay movimientos en la secuencia para guardar', "warning");
@@ -423,7 +653,6 @@ async function guardarSecuencia() {
   const originalText = btnGuardar ? btnGuardar.innerHTML : '';
   
   try {
-    // Mostrar estado de guardado
     if (btnGuardar) {
       btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
       btnGuardar.disabled = true;
@@ -435,7 +664,6 @@ async function guardarSecuencia() {
       movimientos: secuencia 
     });
 
-    // Guardar en la base de datos con timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -486,6 +714,14 @@ async function guardarSecuencia() {
       secuenciasGuardadas.unshift(nuevaSecuencia);
       actualizarListaSecuenciasGuardadas();
       
+      // Registrar evento de CONTROL
+      registrarEventoControl('secuencia', 'secuencia', 'Secuencia Guardada', 
+        `Secuencia "${nombre}" guardada en la base de datos`, {
+          nombre: nombre,
+          movimientos: secuencia.length
+        }
+      );
+      
       if (btnGuardar) {
         btnGuardar.innerHTML = '<i class="fas fa-check"></i> ¡Guardada!';
         btnGuardar.classList.add('saved');
@@ -517,12 +753,10 @@ async function guardarSecuencia() {
       errorMessage = error.message;
     }
     
-    // Intentar guardar localmente
     guardarSecuenciaLocalmente(nombre, descripcion, btnGuardar, originalText);
   }
 }
 
-// Guardar secuencia localmente (fallback)
 function guardarSecuenciaLocalmente(nombre, descripcion, btnGuardar, originalText) {
   try {
     const nuevaSecuencia = {
@@ -538,6 +772,14 @@ function guardarSecuenciaLocalmente(nombre, descripcion, btnGuardar, originalTex
     secuenciasGuardadas.unshift(nuevaSecuencia);
     guardarEnLocalStorage();
     actualizarListaSecuenciasGuardadas();
+    
+    // Registrar evento de CONTROL
+    registrarEventoControl('secuencia', 'secuencia', 'Secuencia Guardada', 
+      `Secuencia "${nombre}" guardada localmente`, {
+        nombre: nombre,
+        movimientos: secuencia.length
+      }
+    );
     
     if (btnGuardar) {
       btnGuardar.innerHTML = '<i class="fas fa-check"></i> Guardada (Local)';
@@ -565,7 +807,6 @@ function guardarSecuenciaLocalmente(nombre, descripcion, btnGuardar, originalTex
   }
 }
 
-// Guardar en localStorage
 function guardarEnLocalStorage() {
   try {
     const datosParaGuardar = secuenciasGuardadas
@@ -587,7 +828,6 @@ function guardarEnLocalStorage() {
   }
 }
 
-// Eliminar secuencia guardada
 async function eliminarSecuenciaGuardada(id, event) {
   if (event) event.stopPropagation();
   
@@ -602,7 +842,6 @@ async function eliminarSecuenciaGuardada(id, event) {
   }
   
   try {
-    // Si es de BD, eliminar del servidor
     if (secuenciaEncontrada.source === 'bd') {
       console.log(`🗑️ Eliminando secuencia ${id} del servidor...`);
       
@@ -625,15 +864,20 @@ async function eliminarSecuenciaGuardada(id, event) {
       console.log(`✅ Secuencia ${id} eliminada del servidor`);
     }
     
-    // Eliminar de la lista local
     secuenciasGuardadas = secuenciasGuardadas.filter(s => s.id !== id);
     
-    // Si era local, actualizar localStorage
     if (secuenciaEncontrada.source === 'local') {
       guardarEnLocalStorage();
     }
     
     actualizarListaSecuenciasGuardadas();
+    
+    // Registrar evento de CONTROL
+    registrarEventoControl('secuencia', 'secuencia', 'Secuencia Eliminada', 
+      `Secuencia "${secuenciaEncontrada.nombre}" eliminada`, {
+        nombre: secuenciaEncontrada.nombre
+      }
+    );
     
     console.log(`🗑️ Secuencia eliminada: ${secuenciaEncontrada.nombre}`);
     mostrarNotificacion('Secuencia eliminada correctamente', "success");
@@ -644,7 +888,6 @@ async function eliminarSecuenciaGuardada(id, event) {
   }
 }
 
-// Ejecutar secuencia guardada
 function ejecutarSecuenciaGuardada(id) {
   const secuenciaEncontrada = secuenciasGuardadas.find(s => s.id === id);
   
@@ -660,6 +903,14 @@ function ejecutarSecuenciaGuardada(id) {
   
   console.log(`🎯 Ejecutando secuencia guardada: ${secuenciaEncontrada.nombre}`, secuenciaEncontrada.movimientos);
   
+  // Registrar evento de CONTROL
+  registrarEventoControl('secuencia', 'secuencia', 'Secuencia Guardada Ejecutada', 
+    `Iniciando secuencia guardada: ${secuenciaEncontrada.nombre}`, {
+      nombre: secuenciaEncontrada.nombre,
+      movimientos: secuenciaEncontrada.movimientos.length
+    }
+  );
+  
   const secuenciaActivaInfo = document.getElementById('secuencia-activa-info');
   const progresoSecuencia = document.getElementById('progreso-secuencia');
   
@@ -674,24 +925,30 @@ function ejecutarSecuenciaGuardada(id) {
     progresoSecuencia.style.width = '0%';
   }
   
-  // Ejecutar cada movimiento
   secuenciaEncontrada.movimientos.forEach((movimiento, index) => {
     setTimeout(() => {
       console.log(`➡️ Movimiento ${index + 1}: ${movimiento}`);
       enviarEventoWS(movimiento);
       
-      // Actualizar progreso
       const progreso = ((index + 1) / secuenciaEncontrada.movimientos.length) * 100;
       if (progresoSecuencia) {
         progresoSecuencia.style.width = `${progreso}%`;
       }
       
-      // Limpiar al finalizar
       if (index === secuenciaEncontrada.movimientos.length - 1) {
         setTimeout(() => {
           if (secuenciaActivaInfo) {
             secuenciaActivaInfo.innerHTML = '<small>Secuencia completada ✅</small>';
           }
+          
+          // Registrar evento de completado
+          registrarEventoControl('secuencia', 'secuencia', 'Secuencia Guardada Completada', 
+            `Secuencia "${secuenciaEncontrada.nombre}" completada`, {
+              nombre: secuenciaEncontrada.nombre,
+              movimientos: secuenciaEncontrada.movimientos.length
+            }
+          );
+          
           mostrarNotificacion(`Secuencia "${secuenciaEncontrada.nombre}" completada`, "success");
           
           setTimeout(() => {
@@ -705,7 +962,6 @@ function ejecutarSecuenciaGuardada(id) {
   });
 }
 
-// Actualizar lista de secuencias guardadas
 function actualizarListaSecuenciasGuardadas() {
   const lista = document.getElementById('lista-secuencias-guardadas');
   if (!lista) {
@@ -763,7 +1019,6 @@ function actualizarListaSecuenciasGuardadas() {
   console.log('✅ Lista de secuencias actualizada');
 }
 
-// Exportar secuencias
 function exportarSecuencias() {
   if (secuenciasGuardadas.length === 0) {
     mostrarNotificacion('No hay secuencias para exportar', "warning");
@@ -778,11 +1033,17 @@ function exportarSecuencias() {
   link.download = `secuencias-carro-${new Date().toISOString().split('T')[0]}.json`;
   link.click();
   
+  // Registrar evento de CONTROL
+  registrarEventoControl('secuencia', 'secuencia', 'Secuencias Exportadas', 
+    `${secuenciasGuardadas.length} secuencias exportadas`, {
+      cantidad: secuenciasGuardadas.length
+    }
+  );
+  
   console.log('📤 Secuencias exportadas:', secuenciasGuardadas.length);
   mostrarNotificacion(`${secuenciasGuardadas.length} secuencias exportadas`, "success");
 }
 
-// Importar secuencias
 function importarSecuencias() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -797,7 +1058,6 @@ function importarSecuencias() {
       try {
         const imported = JSON.parse(event.target.result);
         if (Array.isArray(imported)) {
-          // Asignar nuevos IDs para evitar conflictos
           const importedWithNewIds = imported.map(sec => ({
             ...sec,
             id: Date.now() + Math.floor(Math.random() * 1000),
@@ -807,6 +1067,14 @@ function importarSecuencias() {
           secuenciasGuardadas = [...secuenciasGuardadas, ...importedWithNewIds];
           guardarEnLocalStorage();
           actualizarListaSecuenciasGuardadas();
+          
+          // Registrar evento de CONTROL
+          registrarEventoControl('secuencia', 'secuencia', 'Secuencias Importadas', 
+            `${imported.length} secuencias importadas`, {
+              cantidad: imported.length
+            }
+          );
+          
           mostrarNotificacion(`${imported.length} secuencias importadas correctamente`, "success");
         } else {
           mostrarNotificacion('Formato de archivo inválido', "danger");
@@ -822,9 +1090,8 @@ function importarSecuencias() {
 }
 
 // =============================================================
-// 🚨 SISTEMA DE OBSTÁCULOS
+// 🚨 SISTEMA DE OBSTÁCULOS (SOLO EN SU PROPIA SECCIÓN)
 // =============================================================
-
 async function cargarObstaculos() {
   try {
     console.log("📥 Cargando obstáculos...");
@@ -845,7 +1112,6 @@ async function cargarObstaculos() {
       
       console.log(`✅ ${obstaculos.length} obstáculos cargados`);
       
-      // Actualizar contador
       if (obstacleCount) {
         obstacleCount.textContent = `${obstaculos.length} detectados`;
         obstacleCount.className = obstaculos.length > 5 ? 'badge bg-danger me-2' : 
@@ -864,7 +1130,6 @@ async function cargarObstaculos() {
         return;
       }
 
-      // Mostrar obstáculos
       listaObstaculos.innerHTML = obstaculos.map((obs, index) => `
         <div class="obstacle-item ${getObstaclePriority(obs.distancia_cm)} ${index === 0 ? 'new' : ''}">
           <div class="obstacle-header">
@@ -888,7 +1153,7 @@ async function cargarObstaculos() {
           </div>
         </div>
       `).join('');
-
+      
     } else {
       throw new Error(result.mensaje || 'Error en la respuesta');
     }
@@ -950,87 +1215,42 @@ function getObstaclePriority(distancia) {
 }
 
 // =============================================================
-// 🧠 ACTUALIZAR INTERFAZ
+// 🎚️ VARIADOR DE VELOCIDAD - ACTUALIZADO
 // =============================================================
-function actualizarEstado(evento) {
-  // Verificar si ya existe un evento idéntico reciente para evitar duplicados
-  const eventosExistentes = document.querySelectorAll('.event-item');
-  const eventoReciente = Array.from(eventosExistentes).find(item => 
-    item.textContent.includes(evento.tipo_evento) && 
-    item.textContent.includes(evento.detalle)
-  );
-  
-  if (eventoReciente) {
-    console.log('⚠️ Evento duplicado detectado, ignorando...');
-    return;
-  }
-
-  eventoCount++;
-  
-  const eventCountBadge = document.getElementById('event-count-badge');
-  if (eventCountBadge) eventCountBadge.innerText = eventoCount;
-
-  if (listaEventos) {
-    const div = document.createElement("div");
-    div.classList.add("event-item");
-    div.innerHTML = `
-      <div class="event-time">${new Date().toLocaleTimeString()}</div>
-      <strong>${evento.tipo_evento}</strong>: ${evento.detalle}
-    `;
-    
-    // Mantener máximo 50 eventos
-    if (listaEventos.children.length > 50) {
-      listaEventos.removeChild(listaEventos.lastChild);
-    }
-    
-    listaEventos.prepend(div);
-  }
-}
-
-// =============================================================
-// 🎚️ VARIADOR DE VELOCIDAD - CORREGIDO
-// =============================================================
-
 let velocidadTimeout = null;
 
-// Inicializar el variador de velocidad
 function inicializarVariadorVelocidad() {
   const speedSlider = document.getElementById('speed-slider');
   const speedValue = document.getElementById('speed-value');
   
   if (speedSlider && speedValue) {
-    // Establecer velocidad máxima inicial
     velocidadActual = 250;
     speedSlider.value = velocidadActual;
     speedValue.textContent = velocidadActual;
     actualizarColorVelocidad(velocidadActual);
     
-    // Actualizar valor visual al mover el slider
     speedSlider.addEventListener('input', function() {
       velocidadActual = parseInt(this.value);
       speedValue.textContent = velocidadActual;
       actualizarColorVelocidad(velocidadActual);
       
-      // Enviar velocidad al carro en tiempo real (con debounce)
       clearTimeout(velocidadTimeout);
       velocidadTimeout = setTimeout(() => {
         enviarVelocidadAlCarro();
-      }, 100); // Enviar después de 100ms sin cambios
+      }, 100);
     });
     
     console.log("✅ Variador de velocidad inicializado a: " + velocidadActual);
   }
 }
 
-// Enviar velocidad al carro - FORMATO CORREGIDO
 function enviarVelocidadAlCarro() {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     console.warn("⚠️ WebSocket no conectado, velocidad no enviada");
-    // No intentamos reconectar aquí, ya hay un sistema de reconexión
+    mostrarNotificacionError("No hay conexión con el servidor");
     return;
   }
   
-  // 🚨 FORMATO CORRECTO: usar "comando_velocidad" en lugar de "tipo_evento"
   const data = {
     comando_velocidad: "ajustar",
     valor: velocidadActual,
@@ -1042,45 +1262,41 @@ function enviarVelocidadAlCarro() {
     ws.send(JSON.stringify(data));
     console.log(`📤 Velocidad enviada al carro: ${velocidadActual}`);
     
-    // Mostrar notificación visual
+    // Registrar evento de CONTROL
+    registrarEventoControl('velocidad', 'velocidad', 'Ajuste de Velocidad', 
+      `Velocidad ajustada a: ${velocidadActual}`, {
+        velocidad: velocidadActual
+      }
+    );
+    
     mostrarNotificacionVelocidad(velocidadActual);
   } catch (err) {
     console.error("❌ Error al enviar velocidad:", err);
+    mostrarNotificacionError("Error al enviar velocidad");
   }
 }
 
-// Establecer velocidad específica
 function setSpeed(valor) {
   const speedSlider = document.getElementById('speed-slider');
   const speedValue = document.getElementById('speed-value');
   
   if (speedSlider && speedValue) {
-    // Asegurarse de que esté dentro del rango
     velocidadActual = Math.max(0, Math.min(250, valor));
-    
-    // Actualizar slider y display
     speedSlider.value = velocidadActual;
     speedValue.textContent = velocidadActual;
-    
-    // Actualizar color
     actualizarColorVelocidad(velocidadActual);
-    
-    // Enviar velocidad al carro inmediatamente
     enviarVelocidadAlCarro();
     
     console.log(`⚡ Velocidad establecida a: ${velocidadActual}`);
   }
 }
 
-// Actualizar color del badge según la velocidad
 function actualizarColorVelocidad(velocidad) {
   const speedValue = document.getElementById('speed-value');
   if (!speedValue) return;
   
-  // Limpiar clases anteriores
   speedValue.classList.remove('bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-secondary');
   
-  // Asignar color según velocidad
   if (velocidad === 0) {
     speedValue.className = 'badge bg-secondary fs-6';
   } else if (velocidad <= 50) {
@@ -1094,9 +1310,7 @@ function actualizarColorVelocidad(velocidad) {
   }
 }
 
-// Mostrar notificación de velocidad cambiada
 function mostrarNotificacionVelocidad(velocidad) {
-  // Crear o actualizar notificación
   let notif = document.getElementById('speed-notification');
   if (!notif) {
     notif = document.createElement('div');
@@ -1134,7 +1348,6 @@ function mostrarNotificacionVelocidad(velocidad) {
   notif.style.display = 'block';
   notif.style.opacity = '1';
   
-  // Ocultar después de 1.5 segundos
   setTimeout(() => {
     if (notif) {
       notif.style.opacity = '0';
@@ -1145,70 +1358,8 @@ function mostrarNotificacionVelocidad(velocidad) {
   }, 1500);
 }
 
-// Ajustar velocidad por teclado (atajos)
-document.addEventListener('keydown', function(event) {
-  // Solo procesar si no estamos en un campo de texto
-  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
-  
-  let nuevaVelocidad = velocidadActual;
-  
-  switch(event.key) {
-    case 'ArrowUp':
-    case '+':
-      // Aumentar velocidad en 25
-      nuevaVelocidad = Math.min(250, velocidadActual + 25);
-      event.preventDefault();
-      break;
-      
-    case 'ArrowDown':
-    case '-':
-      // Disminuir velocidad en 25
-      nuevaVelocidad = Math.max(0, velocidadActual - 25);
-      event.preventDefault();
-      break;
-      
-    case '0':
-      // Parar
-      nuevaVelocidad = 0;
-      break;
-      
-    case '1':
-      // 25%
-      nuevaVelocidad = 62;
-      break;
-      
-    case '2':
-      // 50%
-      nuevaVelocidad = 125;
-      break;
-      
-    case '3':
-      // 75%
-      nuevaVelocidad = 188;
-      break;
-      
-    case '4':
-      // 100%
-      nuevaVelocidad = 250;
-      break;
-      
-    case ' ':
-      // Espacio para alternar entre 0 y 250
-      nuevaVelocidad = velocidadActual === 0 ? 250 : 0;
-      event.preventDefault();
-      break;
-      
-    default:
-      return; // Salir si no es una tecla de velocidad
-  }
-  
-  if (nuevaVelocidad !== velocidadActual) {
-    setSpeed(nuevaVelocidad);
-  }
-});
-
 // =============================================================
-// 🎮 CONTROL XBOX
+// 🎮 CONTROL XBOX (SIN CAMBIOS)
 // =============================================================
 class XboxController {
     constructor() {
@@ -1304,10 +1455,9 @@ class XboxController {
 }
 
 // =============================================================
-// 🔔 SISTEMA DE NOTIFICACIONES
+// 🔔 SISTEMA DE NOTIFICACIONES (SIN CAMBIOS)
 // =============================================================
 function mostrarNotificacion(mensaje, tipo = "info") {
-  // Tipos: success, info, warning, danger
   const tiposClases = {
     "success": "alert-success",
     "info": "alert-info",
@@ -1317,7 +1467,6 @@ function mostrarNotificacion(mensaje, tipo = "info") {
   
   const alertClass = tiposClases[tipo] || "alert-info";
   
-  // Crear elemento de notificación
   const notificacion = document.createElement('div');
   notificacion.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
   notificacion.style.cssText = `
@@ -1333,10 +1482,8 @@ function mostrarNotificacion(mensaje, tipo = "info") {
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   `;
   
-  // Agregar al cuerpo del documento
   document.body.appendChild(notificacion);
   
-  // Auto-eliminar después de 5 segundos
   setTimeout(() => {
     if (notificacion.parentNode) {
       notificacion.remove();
@@ -1349,11 +1496,10 @@ function mostrarNotificacionError(mensaje) {
 }
 
 // =============================================================
-// 🚀 INICIALIZACIÓN
+// 🚀 INICIALIZACIÓN (ACTUALIZADA)
 // =============================================================
 function inicializarElementosDOM() {
   movimientoActivo = document.getElementById("movimiento-activo");
-  listaEventos = document.getElementById("listaEventos");
   
   console.log("✅ Elementos DOM inicializados");
 }
@@ -1363,19 +1509,22 @@ window.addEventListener("DOMContentLoaded", () => {
   
   inicializarElementosDOM();
   
+  // Registrar evento de inicio del SISTEMA (solo una vez)
+  registrarEventoControl('sistema', 'sistema', 'Sistema Iniciado', 'Aplicación cargada correctamente');
+  
   // Solo conectar WebSocket una vez
   conectarWebSocket();
   
   // Inicializar control Xbox
   const xboxController = new XboxController();
   
-  // Cargar datos después de un breve retraso (cuando el WebSocket esté listo)
+  // Cargar datos después de un breve retraso
   setTimeout(() => {
     cargarSecuencias();
     cargarObstaculos();
     actualizarSecuenciaUI();
     inicializarVariadorVelocidad();
-  }, 2000); // Aumentado a 2 segundos para dar tiempo a la conexión
+  }, 2000);
   
   // Event listeners para botones
   document.querySelectorAll('.control-btn').forEach(btn => {
@@ -1410,37 +1559,32 @@ window.addEventListener("DOMContentLoaded", () => {
     switch(event.key) {
       case 'ArrowUp':
       case '+':
-        // Aumentar velocidad en 10
         nuevaVelocidad = Math.min(250, velocidadActual + 10);
         event.preventDefault();
         break;
         
       case 'ArrowDown':
       case '-':
-        // Disminuir velocidad en 10
         nuevaVelocidad = Math.max(0, velocidadActual - 10);
         event.preventDefault();
         break;
         
       case '0':
-        // Parar
         nuevaVelocidad = 0;
         break;
         
       case 'm':
       case 'M':
-        // Velocidad media
         nuevaVelocidad = 125;
         break;
         
       case ' ':
-        // Espacio para velocidad normal (128)
         nuevaVelocidad = 128;
         event.preventDefault();
         break;
         
       default:
-        return; // Salir si no es una tecla de velocidad
+        return;
     }
     
     if (nuevaVelocidad !== velocidadActual) {
@@ -1465,6 +1609,7 @@ function debugWebSocket() {
   console.log("Reconexión intentos:", reconnectAttempts);
   console.log("Último movimiento:", lastMovimiento);
   console.log("Velocidad actual:", velocidadActual);
+  console.log("Total eventos control:", eventoCount);
   
   // Probar conexión HTTP
   fetch(`${SERVER_URL}/api/health`)

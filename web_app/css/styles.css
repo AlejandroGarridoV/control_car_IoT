@@ -417,6 +417,246 @@ footer {
 }
 
 /* ============================================================= */
+/* 🎮 ESTILOS PARA EVENTOS DE CONTROL Y CARRO */
+/* ============================================================= */
+
+/* Estilos para la sección de eventos */
+.events-card .d-flex.mb-3 {
+  margin-bottom: 15px;
+}
+
+.events-card .btn-group .btn {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 0.85rem;
+}
+
+.events-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.events-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.events-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.events-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.empty-events {
+  text-align: center;
+  color: #6c757d;
+  padding: 30px 10px;
+}
+
+.empty-events i {
+  opacity: 0.5;
+}
+
+/* Estilos para items de eventos */
+.event-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-left: 4px solid #0d6efd; /* Azul por defecto para control */
+  transition: all 0.2s ease;
+}
+
+.event-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(2px);
+}
+
+/* Eventos del carro (verde) */
+#listaEventosCarro .event-item {
+  border-left-color: #198754; /* Verde para eventos del carro */
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.event-time {
+  font-size: 0.75rem;
+  color: #adb5bd;
+}
+
+.event-type-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+}
+
+.event-body {
+  font-size: 0.9rem;
+}
+
+.event-velocity, .event-distance {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 3px;
+}
+
+/* Colores específicos para tipos de eventos de control */
+.forward-event {
+  border-left-color: #28a745 !important;
+}
+
+.backward-event {
+  border-left-color: #dc3545 !important;
+}
+
+.left-event {
+  border-left-color: #ffc107 !important;
+}
+
+.right-event {
+  border-left-color: #17a2b8 !important;
+}
+
+.stop-event {
+  border-left-color: #6c757d !important;
+}
+
+.demo-event {
+  border-left-color: #e83e8c !important;
+}
+
+.curve-left-forward-event {
+  border-left-color: #20c997 !important;
+}
+
+.curve-right-forward-event {
+  border-left-color: #6610f2 !important;
+}
+
+.curve-left-backward-event {
+  border-left-color: #fd7e14 !important;
+}
+
+.curve-right-backward-event {
+  border-left-color: #6f42c1 !important;
+}
+
+.turn-90-left-event, .turn-180-left-event {
+  border-left-color: #fd7e14 !important;
+}
+
+.turn-90-right-event, .turn-180-right-event {
+  border-left-color: #6f42c1 !important;
+}
+
+.speed-event {
+  border-left-color: #0dcaf0 !important;
+}
+
+/* Eventos del carro */
+.obstacle-event {
+  border-left-color: #dc3545 !important;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.connection-event {
+  border-left-color: #0dcaf0 !important;
+}
+
+.error-event {
+  border-left-color: #dc3545 !important;
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* Animación para nuevos eventos */
+@keyframes highlightEvent {
+  0% { 
+    background: rgba(13, 110, 253, 0.3); 
+    transform: scale(1.02);
+  }
+  100% { 
+    background: rgba(255, 255, 255, 0.05); 
+    transform: scale(1);
+  }
+}
+
+.event-item.new {
+  animation: highlightEvent 0.5s ease;
+}
+
+/* Botones de pestañas */
+.events-card .btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.events-card .btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.events-card .btn-outline-success {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.events-card .btn-outline-success:hover {
+  background: var(--success);
+  color: white;
+}
+
+/* Contadores */
+#control-event-count, #carro-event-count {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .events-card .btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .event-item {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+  
+  .event-time {
+    font-size: 0.7rem;
+  }
+  
+  .events-list {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 576px) {
+  .events-card .d-flex.mb-3 {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .events-card .btn {
+    width: 100%;
+  }
+}
+
+/* ============================================================= */
 /* 🆕 SCROLLBAR MEJORADO Y MÁS VISIBLE */
 /* ============================================================= */
 

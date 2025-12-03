@@ -19,6 +19,8 @@
         <a class="navbar-brand" href="#">
             <i class="fas fa-car-side me-2"></i>Control del Carro IoT
         </a>
+
+        
         <div class="d-flex">
             <span id="connection-status" class="navbar-text">
                 <i class="fas fa-signal me-1"></i> Conectado
@@ -129,6 +131,7 @@
 
     <!-- Cuadrícula principal con curvas integradas -->
     <div class="control-grid-integrated">
+      
       <!-- Tu cuadrícula actual aquí (sin cambios) -->
       <!-- Fila 1: Curva Izquierda Adelante - Adelante - Curva Derecha Adelante -->
       <button class="control-btn btn-curve-fa curve-top-left" 
@@ -250,12 +253,7 @@
     </div>
 
     <!-- Botón Demo debajo del pad de control -->
-    <div class="demo-section mt-4">
-      <button class="control-btn btn-dance demo-btn-large" onclick="enviarEventoWS('Demo')">
-        <i class="fas fa-music me-2"></i>
-        <span>Modo Demo</span>
-      </button>
-    </div>
+    
 
 
 <!-- 🆕 NUEVO: VARIADOR DE VELOCIDAD -->
@@ -284,16 +282,6 @@
       <small class="text-muted">Rápido (250)</small>
     </div>
   </div>
-  
-  <div class="speed-presets mt-3">
-    <div class="btn-group btn-group-sm w-100" role="group">
-      <button type="button" class="btn btn-outline-info" onclick="setSpeed(0)">Parar</button>
-      <button type="button" class="btn btn-outline-primary" onclick="setSpeed(50)">Lento</button>
-      <button type="button" class="btn btn-outline-primary" onclick="setSpeed(100)">Normal</button>
-      <button type="button" class="btn btn-outline-warning" onclick="setSpeed(175)">Rápido</button>
-      <button type="button" class="btn btn-outline-danger" onclick="setSpeed(250)">Máximo</button>
-    </div>
-  </div>
 </div>
 
 
@@ -312,17 +300,10 @@
             <span class="badge bg-primary" id="event-count-badge">0</span>
           </div>
           <div id="listaEventos" class="events-list">
-            <div class="text-center text-muted py-3">
-              <i class="fas fa-clock fa-lg mb-2"></i>
-              <p class="small">Cargando eventos...</p>
-            </div>
+  
+            
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sección de Obstáculos (Abajo) -->
-    <div class="row mt-3">
+           <div class="row mt-3">
       <div class="col-12">
         <div class="status-card">
           <h4><i class="fas fa-exclamation-triangle me-2"></i>Obstáculos Detectados</h4>
@@ -345,6 +326,15 @@
         </div>
       </div>
     </div>
+        </div>
+      </div>
+
+
+      
+    </div>
+
+    
+   
   </div>
 
   <footer class="bg-dark text-white text-center p-3 mt-4">
