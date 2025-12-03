@@ -25,6 +25,9 @@ const MAX_EVENTOS = 50;
 // --- ELEMENTOS DOM ---
 let movimientoActivo;
 
+
+
+
 // =============================================================
 // 🎮 SISTEMA DE EVENTOS - SOLO CONTROL
 // =============================================================

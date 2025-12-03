@@ -21,7 +21,7 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.6;
+  line-height: 1;
 }
 
 .navbar-brand {
@@ -36,7 +36,8 @@ body {
 
 /* Fila principal de controles */
 .main-controls-row {
-  min-height: 600px;
+  min-height: 580px;
+  max-height: 580px; 
   align-items: stretch;
 }
 
@@ -47,10 +48,11 @@ body {
   border: 1px solid var(--border-light);
   padding: 1.5rem;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  height: 100%;
+   height: 650px;
+    max-height: 650px; 
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 /* NUEVA CUADRÍCULA INTEGRADA CON CURVAS */
@@ -411,6 +413,8 @@ body {
 }
 
 footer {
+  position: relative;
+  top: 30vh;
   border-top: 1px solid var(--border-light);
   color: var(--text-secondary);
   padding: 1rem 0;
@@ -966,6 +970,7 @@ footer {
   margin-bottom: 0;
   border-radius: 0;
   border: none;
+  left: 50% ;
   backdrop-filter: blur(10px);
 }
 
